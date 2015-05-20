@@ -1,4 +1,5 @@
-# Pruebas de conexión al disco
+
+# Pruebas de conexión al disco (@carpetri)
 
 Me estoy conectando al disco por el Finder super trivial, lo concecté con mi router que no es Gigabit así que toda esta prueba está limitada a esa velocidad de tranferencia. Asigné el ip del router para que tenga ip 192.168.10.1. el router asigna ips automático, el de mi compu fue el 134 en este caso. El del disco se quedó fijo en el el 181. Para montarlo en en finder entré con la clave de usuario que nos dieron:
 
@@ -147,13 +148,12 @@ Para cargar los archivos usé
 
 1.  La carpeta que subí fue la primera `101_masterpieces_of_american_primative_painting`, de 213 mb. Tarda como un segundo por archivo, son como 164*2 (pdf y jpg) archivos.
 
-`12.19s user 5.77s system 3% cpu 8:07.84 total`
+12.19s user 5.77s system 3% cpu 8:07.84 total`
 
 
 2. La carpeta que subí (en este caso con el internet del ITAM SANTA TERESA WIFI itammovil2) fue  `12_artistas_donde_se_origina_el_arte_en_el_aire`, de 270 mb. Tarda como un segundo por archivo, son como 240*2 (pdf y jpg) archivos, o 240 segundos, como 11 minutos.
 
 `6.61s user 2.96s system 1% cpu 10:39.91 total`
-
 
 
 ## El último paso 
@@ -163,14 +163,6 @@ Lo ultimo que se debe intentar es subir sin copiar. Es decir montar el disco y s
 Esto no lo probe porque no pude configurar el router para que me diera internet en el ITAM conservando los ips para poder conectarme al disco.
 
 Habrá que checar cómo hacer esto.
-
-
-
-
-
-
-
-
 
 
 
