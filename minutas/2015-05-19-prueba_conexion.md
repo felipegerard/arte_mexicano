@@ -92,7 +92,8 @@ Primero, lo cargue con s3cmd  aquí están las instrucciones que usé para insta
 AGUAS Q ESTE ARCHIVO INCLUYE LAS LLAVES DE ACCESO DEL AWS PARA EL S3.
 
 
-``` brew install s3cmd
+```
+brew install s3cmd
 ==> Downloading https://homebrew.bintray.com/bottles/s3cmd-1.5.2.yosemite.bottle
 ######################################################################## 100.0%
 ==> Pouring s3cmd-1.5.2.yosemite.bottle.tar.gz
