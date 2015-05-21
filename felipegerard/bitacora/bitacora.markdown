@@ -56,9 +56,16 @@ BITÁCORA
     +) Llorar :(
 
 
+-------------------------------------
+2015-05-20
+-------------------------------------
 
+# Jared, Felipe
 
-
+* Hicimos algunas pruebas con el switch que trajo Petri y en efecto fue más rápido.
+* Logramos conectar la Mac con ese switch, pero no la computadora del cubo... Como que a veces se atonta el disco.
+* Notamos que al copiar carpetas hay tiempo perdido: cuando va a comenzar con una carpeta nueva, deja de descargar información varios segundos. Parece como si planeara lo que va a hacer, pero no hace nada durante ese tiempo. Esto es usando `cp -r`.
+* Qué bueno que ya no usaremos ese disco! \(*v*)/
 
 
 
