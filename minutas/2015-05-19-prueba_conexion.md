@@ -141,7 +141,7 @@ Not configured. Never mind.
 
 Save settings? [y/N] y
 Configuration saved to '/Users/Carlos/.s3cfg'
-```
+``
 
 Para cargar los archivos usé 
 
