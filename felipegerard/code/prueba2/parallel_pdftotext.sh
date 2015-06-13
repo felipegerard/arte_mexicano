@@ -46,13 +46,21 @@ done
 if [ $HELP ]
     then
 	echo "Uso:"
-	echo "    ./parallel_pdftotext -f <carpeta con PDFs> -t <carpeta destino TXT>"
+	echo "    ./parallel_pdftotext -f <directory with PDFs> -t <target directory for TXT files>"
 	echo "Opciones:"
-	echo "    [-j|--ncores] <numero de cores para parallel>. Default: 4"
+	echo "    [-j|--ncores] <number of cores to be used by parallel>. Default: 4"
 	echo "    [-v|--verbose]"
 	echo "    [-h|--help]"
-	echo "    [-p|--parallel_args] \"<otros argumentos a pasar a parallel>\""
-	echo "    [-d|--pdftotext_args] \"<argumentos a pasar a parallel>\". Default: \"-q -layout\""
+	echo "    [-p|--parallel_args] \"<other arguments to pass on to parallel>\""
+	echo "    [-d|--pdftotext_args] \"<arguments to pass on to pdftotext>\". Default: \"-q -layout\""
+elif ! type pdftotext >/dev/null
+    then
+	echo "ERROR: pdftotext not found. Install it and make sure it is on your PATH."
+	echo "    Mac: brew instal xpdf *or* brew install poppler."
+	echo "    Linux: sudo apt-get install poppler-utils"
+elif ! type parallel >/dev/null
+    then
+	echo "ERROR: parallel not found. Install it and make sure it is on your PATH"
 elif [[ ! "$FROM" ]]
     then
 	echo "Falta carpeta de origen (-f <carpeta>)..."
