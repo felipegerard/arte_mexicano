@@ -68,8 +68,15 @@ BITÁCORA
 * Qué bueno que ya no usaremos ese disco! \(*v*)/
 
 
+-------------------------------------
+2015-05-22
+-------------------------------------
 
+# Felipe
 
+Leí los artículos:
+
+    * Image Processing for Artist Identification (sp_vangogh.pdf): págs. 1 a 8
 
 
 
