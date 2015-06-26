@@ -38,9 +38,9 @@ do
 	shift
 	;;
 	*) # unknown option
+	shift
 	;;
     esac
-    shift
 done
 
 if [ $HELP ]
@@ -72,20 +72,16 @@ else
 	then
 	    CORES=4
     fi
-    if [[ ! "$VERBOSE" ]]
-	then
-	    VERBOSE=false
-    fi
     if [[ ! "$PDFTOTEXT" ]]
 	then
 	    PDFTOTEXT="-layout -q"
     fi
-    if [ $VERBOSE ]
+    if [[ "$VERBOSE" ]]
 	then
-	    echo "Carpeta de origen:  " $FROM
-	    echo "Carpeta de destino: " $TO
-	    echo "Numero de nucleos:  " $CORES
-	    echo "Otros args parallel:" $PARALLEL
+	    echo "Source directory:  " $FROM
+	    echo "Target directory: " $TO
+	    echo "Number of cores:  " $CORES
+	    echo "Other arguments to pass on to parallel:" $PARALLEL
     fi
     find $FROM | egrep '\.pdf$|.PDF$' \
 	| parallel $PARALLEL -j $CORES "pdftotext $PDFTOTEXT {} $TO/{/.}.txt"
