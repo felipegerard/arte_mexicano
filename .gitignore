@@ -15,4 +15,10 @@ data
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
+
+# Docker configuration files
+.viminfo
+.zcompdump
+.zsh_history
+.zshrc
 >>>>>>> e0876ea2ae2fddafc28f8551364e884147e1daa2

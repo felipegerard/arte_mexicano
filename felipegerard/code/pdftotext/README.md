@@ -1,14 +1,27 @@
-
-Instalación de `pdftotext`
+Instalación
 -----------------------------------
 
-En estas librerías viene `pdftotext`. Lo pueden instalar como quieran siempre y cuando esté agregada al PATH:
-
-Mac: `brew install xpdf` o también `brew install poppler`
-
-Linux: `apt-get install poppler-utils`
+* Instalar parallel: `sudo apt-get install parallel`
+* Instalar pdftotext:
+    +) Mac: `brew install xpdf` o también `brew install poppler`
+    +) Linux: `apt-get install poppler-utils`
+    +) De alguna otra forma, siempre y cuando esté en el PATH
+* Hay que tener parallel_pdftotext.sh y mass_pdftotext.sh en la misma carpeta, con permisos para ejecutar
 
 Uso del script
 -----------------------------------
 
-Por ahora el [script](https://github.com/felipegerard/arte_mexicano/tree/master/felipegerard/code/prueba2) está en versión beta (arte_mexicano/felipegerard/code/prueba2/parallel_pdftotext.sh). Por favor pruébenlo y díganme si tiene algún bug o si le falta/sobra algo. Pongan `./parallel_pdftotext --help` para el uso.
+El script está en mi GitHub: https://github.com/felipegerard/arte_mexicano/tree/master/felipegerard/code/pdftotext
+
+Conseguir ayuda:
+    * Script para una carpeta:
+	+) ./parallel_pdftotext --help
+	+) Correr el script para un solo libro con parámetros default: `./parallel_pdftotext.sh -f <carpeta origen> -t <carpeta destino>
+    * Script para transformación masiva:
+	+) ./mass_pdftotext.sh --help
+	+) Correr el script masivo: `./mass_pdftotext.sh -f <carpeta con todos los libros>
+
+IMPORTANTE
+-----------------------------------
+
+Al correr el script masivo en una Mac, hay que usar la bandera `--mac` para que sed funcione correctamente.
