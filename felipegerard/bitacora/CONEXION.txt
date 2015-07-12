@@ -1,0 +1,12 @@
+
+### AWS CLI
+
+* En la consola, en security credentials, ponerle al usuario AdministratorAccess o alguno con suficiente permiso.
+
+### EC2 + S3
+
+* http://juliensimon.blogspot.mx/2013/08/howto-aws-mount-s3-buckets-from-linux.html
+
+### FILE SYSTEM FÁCIL DE MONTAR
+
+* https://aws.amazon.com/efs/

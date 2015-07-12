@@ -1,0 +1,8 @@
+aws ec2 describe-images
+
+cat images.table | grep -B 20 hvm | more
+
+aws ec2 create-key-pair --key-name felipePruebaEC2
+aws ec2 describe-key-pairs
+
+aws ec2 run-instances --image-id ami-0053dd30 --count 1 --instance-type t2.micro --key-name felipePruebaEC2 --dry-run
