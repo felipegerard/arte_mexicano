@@ -7,6 +7,23 @@
 
 * http://juliensimon.blogspot.mx/2013/08/howto-aws-mount-s3-buckets-from-linux.html
 
+# Descomentamos lo de allow_other en /etc/fuse.conf
+http://unix.stackexchange.com/questions/37168/unable-to-use-o-allow-other-with-sshfs-option-enabled-in-fuse-conf
+ubuntu@ip-172-31-36-124:/mnt$ sudo vi /etc/fuse.conf
+ubuntu@ip-172-31-36-124:/mnt$ chmod a+r /etc/fuse.conf
+ubuntu@ip-172-31-36-124:/mnt$ s3fs -o allow_other -o uid=1000,gid=1000,use_cache=/home/ubuntu/cache arte-mexicano /mnt/s3
+ubuntu@ip-172-31-36-124:/mnt/s3/pdftotext$ ls -l
+total 3
+---------- 1 ubuntu ubuntu   219 Jul 14 04:46 build_train.sh
+# Puedo ver los archivos, pero al intentar hacer cat o verlo con vi, me da error
+ubuntu@ip-172-31-36-124:/mnt/s3/pdftotext$ cat README.md
+cat: README.md: Bad file descriptor
+
+# Útil: automontar al iniciar la instancia
+http://stackoverflow.com/questions/15891849/mount-multiple-s3fs-buckets-automatically-with-etc-fstab
+
 ### FILE SYSTEM FÁCIL DE MONTAR
 
 * https://aws.amazon.com/efs/
+
+
