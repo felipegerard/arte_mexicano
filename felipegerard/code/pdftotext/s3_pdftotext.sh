@@ -49,7 +49,7 @@ done
 if [ $HELP ]
     then
 	echo "Usage:"
-	echo "    ./mass_pdftotext [options] -b s3://<S3 bucket> -t <target local directory>"
+	echo "    ./s3_pdftotext [options] -b <S3 bucket> -t <target local directory>"
 	echo "Options:"
 	echo "    [--mac] Use -E flag instead of -r flag for sed regexp. Used for compatibility with OSX."
 	echo "    [-j|--ncores] <number of cores to be used by parallel>. Default: 4"
@@ -91,12 +91,12 @@ else
 	then
 	    VERB="--verbose"
 	    echo "S3 bucket: " $BUCKET
-	    echo "Target dir: " $TO
+	    echo "Target directory: " $TO
 	    echo "Number of cores:  " $CORES
 	    echo "System:	    " $SYSTEM
 	    echo "Other arguments to pass on to parallel:" $PARALLEL
     fi
-    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$'`
+    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$' | wc -l`
     i=1
     aws s3 ls --recursive $BUCKET \
 	| grep --ignore-case 'pdf/$' \
@@ -106,7 +106,7 @@ else
 		if [[ "$VERBOSE" ]]
 		    then
 			echo ==================================================================
-			echo ($i / $ndir): $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'
+			echo "($i / $ndir): $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'"
 		fi
 		txt=`echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1\/txt\//'`
 		aws s3 cp --recursive --quiet s3://$BUCKET/$d $TO/$d
