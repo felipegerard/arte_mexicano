@@ -1,7 +1,6 @@
-<<<<<<< HEAD
 .DS_Store
 data
-=======
+
 # History files
 .Rhistory
 .Rapp.history
@@ -21,4 +20,3 @@ vignettes/*.pdf
 .zcompdump
 .zsh_history
 .zshrc
->>>>>>> e0876ea2ae2fddafc28f8551364e884147e1daa2

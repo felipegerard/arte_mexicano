@@ -6,8 +6,12 @@ do
     key="$1"
 
     case $key in
-	-f|--directory)
-	ORIGIN="$2"
+	-b|--bucket)
+	BUCKET="$2"
+	shift
+	;;
+	-t|--to)
+	TO="$2"
 	shift
 	;;
 	-j|--ncores)
@@ -57,9 +61,12 @@ if [ $HELP ]
 	echo "    The script searches the directory passed on with the -f flag for directories named pdf or PDF."
 	echo "    It then extracts the text out of each .pdf within the directory and creates a .txt file."
 	echo "    Finally, it creates a directory named txt at the same level as the pdf directory and puts all the .txt files within."
-elif [[ ! "$ORIGIN" ]]
+elif [[ ! "$BUCKET" ]]
     then
-	echo "Please supply a source directory (-f <directory>)..."
+	echo "Please supply an AWS S3 bucket (-b s3://<bucket>)..."
+elif [[ ! "$TO" ]]
+    then
+	echo "Please supply an empty local directory (-t <local directory>)..."
 else
     if [[ "$CORES" ]]
 	then
@@ -81,29 +88,35 @@ else
     if [[ "$VERBOSE" ]]
 	then
 	    VERB="--verbose"
-	    echo "Source directory: " $ORIGIN
+	    echo "S3 bucket: " $BUCKET
+	    echo "Target dir: " $TO
 	    echo "Number of cores:  " $CORES
 	    echo "System:	    " $SYSTEM
 	    echo "Other arguments to pass on to parallel:" $PARALLEL
     fi
-    ndir=`ls $ORIGIN | wc -l | sed 's/ //g'`
+    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$'`
     i=1
-    find $ORIGIN \
-	| egrep --ignore-case "/pdf$" \
-	| while read d
+    aws s3 ls --recursive $BUCKET \
+	| grep --ignore-case 'pdf/$' \
+	| sed $SED_FLAG 's/.+ +[0-9]+ //' \
+	| while read d;
 	    do
 		if [[ "$VERBOSE" ]]
 		    then
-			echo ======================================================
-			echo "($i/$ndir)"
+			echo ==================================================================
+			echo ($i / $ndir): $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'
 		fi
-		echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)$/\1\/txt/' | xargs mkdir 
-		dirs=`echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)$/--from \1\/\2 --to \1\/txt/'`
-		echo "./parallel_pdftotext.sh $VERB $COR $PARALLEL $PDFTOTEXT $dirs" \
-		    | sed $SED_FLAG 's/ +/ /g' \
-		    | bash
+		txt=`echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1\/txt\//'`
+		aws s3 cp --recursive --quiet s3://$BUCKET/$d $TO/$d
+		mkdir $TO/$txt
+		./parallel_pdftotext.sh $VERB $COR $PARALLEL $PDFTOTEXT --from $TO/$d --to $TO/$txt
+		rm -r $TO/$d
 		i=$((i+1))
 	    done
+
+
 fi
+
+
 
 
