@@ -49,7 +49,7 @@ done
 if [ $HELP ]
     then
 	echo "Usage:"
-	echo "    ./mass_pdftotext [options] -f <directory with book directories>"
+	echo "    ./mass_pdftotext [options] -b s3://<S3 bucket> -t <target local directory>"
 	echo "Options:"
 	echo "    [--mac] Use -E flag instead of -r flag for sed regexp. Used for compatibility with OSX."
 	echo "    [-j|--ncores] <number of cores to be used by parallel>. Default: 4"
@@ -58,9 +58,11 @@ if [ $HELP ]
 	echo "    [-p|--parallel_args] \"<other arguments to pass on to parallel>\""
 	echo "    [-d|--pdftotext_args] \"<arguments to pass on to pdftotext>\". Default: \"-q -layout\""
 	echo "Details:"
-	echo "    The script searches the directory passed on with the -f flag for directories named pdf or PDF."
-	echo "    It then extracts the text out of each .pdf within the directory and creates a .txt file."
-	echo "    Finally, it creates a directory named txt at the same level as the pdf directory and puts all the .txt files within."
+	echo "    The script searches the S3 bucket passed on with the -b flag for directories named pdf or PDF."
+	echo "    It then extracts downloads a copy of each folder and converts it to TXT on a folder at the same level as the copy of the PDF folder."
+	echo "    Finally, it removes the PDF folder to save space."
+	echo "    NOTICE: This script does NOT upload any information to S3."
+	echo "    WARNING: Provide an empty local directory to avoid collision and possible loss of information."
 elif [[ ! "$BUCKET" ]]
     then
 	echo "Please supply an AWS S3 bucket (-b s3://<bucket>)..."
