@@ -96,17 +96,23 @@ else
 	    echo "System:	    " $SYSTEM
 	    echo "Other arguments to pass on to parallel:" $PARALLEL
     fi
-    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$' | wc -l | sed 's/ //g'`
+    dir_list=`aws s3 ls --recursive $BUCKET \
+            | sed $SED_FLAG 's/ +/|/g' \
+            | cut -d'|' -f4 \
+            | sed $SED_FLAG 's/([^/]+\/[^/]+\/).*/\1/' \
+            | grep --ignore-case 'pdf/$' \
+	    | uniq`
+    ndir=`echo $dir_list | tr ' ' '\n' | wc -l | sed 's/ //g'`
+    echo 'ndir = ' $ndir
     i=1
-    aws s3 ls --recursive $BUCKET \
-	| grep --ignore-case 'pdf/$' \
-	| sed $SED_FLAG 's/.+ +[0-9]+ //' \
+    echo $dir_list \
+	| tr ' ' '\n' \
 	| while read d;
 	    do
 		if [[ "$VERBOSE" ]]
 		    then
 			echo ==================================================================
-			msg=`$d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'`
+			msg=`echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'`
 			echo "($i / $ndir): $msg"
 		fi
 		#dfix=`echo $d | sed $SED_FLAG 's/ /\\ /g'`
