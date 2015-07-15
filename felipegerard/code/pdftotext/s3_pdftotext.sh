@@ -63,6 +63,7 @@ if [ $HELP ]
 	echo "    Finally, it removes the PDF folder to save space."
 	echo "    NOTICE: This script does NOT upload any information to S3."
 	echo "    WARNING: Provide an empty local directory to avoid collision and possible loss of information."
+	echo "    WARNING: Names with spaces are NOT allowed!"
 elif [[ ! "$BUCKET" ]]
     then
 	echo "Please supply an AWS S3 bucket (-b s3://<bucket>)..."
