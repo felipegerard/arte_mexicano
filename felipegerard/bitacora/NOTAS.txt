@@ -26,5 +26,7 @@ http://stackoverflow.com/questions/15891849/mount-multiple-s3fs-buckets-automati
 
 * https://aws.amazon.com/efs/
 
-### IDEA: Bajar a temporal, procesar y subir
+### FALTA
+
+* Ahora hacer script de subida para que las carpetas txt queden en su lugar correspondiente
 
