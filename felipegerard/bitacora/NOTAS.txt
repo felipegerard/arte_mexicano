@@ -26,4 +26,5 @@ http://stackoverflow.com/questions/15891849/mount-multiple-s3fs-buckets-automati
 
 * https://aws.amazon.com/efs/
 
+### IDEA: Bajar a temporal, procesar y subir
 
