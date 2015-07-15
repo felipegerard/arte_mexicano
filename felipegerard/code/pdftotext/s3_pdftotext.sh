@@ -49,7 +49,7 @@ done
 if [ $HELP ]
     then
 	echo "Usage:"
-	echo "    ./mass_pdftotext [options] -b s3://<S3 bucket> -t <target local directory>"
+	echo "    ./s3_pdftotext [options] -b <S3 bucket> -t <target local directory>"
 	echo "Options:"
 	echo "    [--mac] Use -E flag instead of -r flag for sed regexp. Used for compatibility with OSX."
 	echo "    [-j|--ncores] <number of cores to be used by parallel>. Default: 4"
@@ -106,8 +106,9 @@ else
 		if [[ "$VERBOSE" ]]
 		    then
 			echo ==================================================================
-			echo ($i / $ndir): $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'
+			echo "($i / $ndir): $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'"
 		fi
+		dfix=`echo $d | sed $SED_FLAG 's/ +/_/g'`
 		txt=`echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1\/txt\//'`
 		aws s3 cp --recursive --quiet s3://$BUCKET/$d $TO/$d
 		mkdir $TO/$txt
