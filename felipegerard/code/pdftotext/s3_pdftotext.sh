@@ -91,12 +91,12 @@ else
 	then
 	    VERB="--verbose"
 	    echo "S3 bucket: " $BUCKET
-	    echo "Target dir: " $TO
+	    echo "Target directory: " $TO
 	    echo "Number of cores:  " $CORES
 	    echo "System:	    " $SYSTEM
 	    echo "Other arguments to pass on to parallel:" $PARALLEL
     fi
-    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$'`
+    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$' | wc -l`
     i=1
     aws s3 ls --recursive $BUCKET \
 	| grep --ignore-case 'pdf/$' \
