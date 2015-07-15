@@ -96,7 +96,7 @@ else
 	    echo "System:	    " $SYSTEM
 	    echo "Other arguments to pass on to parallel:" $PARALLEL
     fi
-    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$' | wc -l`
+    ndir=`aws s3 ls --recursive $BUCKET | grep --ignore-case 'pdf/$' | wc -l | sed 's/ //g'`
     i=1
     aws s3 ls --recursive $BUCKET \
 	| grep --ignore-case 'pdf/$' \
@@ -106,9 +106,12 @@ else
 		if [[ "$VERBOSE" ]]
 		    then
 			echo ==================================================================
-			echo "($i / $ndir): $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'"
+			msg=`$d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1/'`
+			echo "($i / $ndir): $msg"
 		fi
-		dfix=`echo $d | sed $SED_FLAG 's/ +/_/g'`
+		#dfix=`echo $d | sed $SED_FLAG 's/ /\\ /g'`
+		#echo $d
+		#echo $dfix
 		txt=`echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1\/txt\//'`
 		aws s3 cp --recursive --quiet s3://$BUCKET/$d $TO/$d
 		mkdir $TO/$txt
