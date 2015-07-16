@@ -104,7 +104,6 @@ else
             | grep --ignore-case 'pdf/$' \
 	    | uniq`
     ndir=`echo $dir_list | tr ' ' '\n' | wc -l | sed 's/ //g'`
-    echo 'ndir = ' $ndir
     i=1
     echo $dir_list \
 	| tr ' ' '\n' \
