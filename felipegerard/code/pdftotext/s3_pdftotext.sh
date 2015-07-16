@@ -58,7 +58,7 @@ if [ $HELP ]
 	echo "    [-p|--parallel_args] \"<other arguments to pass on to parallel>\""
 	echo "    [-d|--pdftotext_args] \"<arguments to pass on to pdftotext>\". Default: \"-q -layout\""
 	echo "Details:"
-	echo "    The script searches the S3 bucket passed on with the -b flag for directories named pdf or PDF."
+	echo "    This script searches the S3 bucket passed on with the -b flag for directories named pdf or PDF."
 	echo "    It then extracts downloads a copy of each folder and converts it to TXT on a folder at the same level as the copy of the PDF folder."
 	echo "    Finally, it removes the PDF folder to save space."
 	echo "    NOTICE: This script does NOT upload any information to S3."
