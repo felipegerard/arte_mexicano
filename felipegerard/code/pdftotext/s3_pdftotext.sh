@@ -39,6 +39,10 @@ do
 	PDFTOTEXT="$2"
 	shift
 	;;
+	-n|--dry-run)
+	DRYRUN='echo '
+	shift
+	;;
 	*) # unknown option
 	shift
 	;;
@@ -119,10 +123,10 @@ else
 		#echo $d
 		#echo $dfix
 		txt=`echo $d | sed $SED_FLAG 's/(.+)\/(PDF|pdf)\/$/\1\/txt\//'`
-		aws s3 cp --recursive --quiet s3://$BUCKET/$d $TO/$d
-		mkdir $TO/$txt
-		./parallel_pdftotext.sh $VERB $COR $PARALLEL $PDFTOTEXT --from $TO/$d --to $TO/$txt
-		rm -r $TO/$d
+		$DRYRUN aws s3 cp --recursive --quiet s3://$BUCKET/$d $TO/$d 
+		$DRYRUN mkdir $TO/$txt 
+		$DRYRUN ./parallel_pdftotext.sh $VERB $COR $PARALLEL $PDFTOTEXT --from $TO/$d --to $TO/$txt 
+		$DRYRUN rm -r $TO/$d 
 		i=$((i+1))
 	    done
 
