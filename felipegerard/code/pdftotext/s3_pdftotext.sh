@@ -102,11 +102,11 @@ else
 	    echo "Other arguments to pass on to parallel:" $PARALLEL
     fi
     dir_list=`aws s3 ls --recursive $BUCKET \
-            | sed $SED_FLAG 's/ +/|/g' \
-            | cut -d'|' -f4 \
-            | sed $SED_FLAG 's/([^/]+\/[^/]+\/).*/\1/' \
-            | grep --ignore-case 'pdf/$' \
-	    | uniq`
+         | sed $SED_FLAG 's/ +/|/g' \
+         | cut -d'|' -f4 \
+         | sed $SED_FLAG 's/(.*)\/([^/]+\/[^/]+\/)([^/]+)$/\2/'\
+         | grep --ignore-case 'pdf/$' \
+	 | uniq`
     ndir=`echo $dir_list | tr ' ' '\n' | wc -l | sed 's/ //g'`
     i=1
     echo $dir_list \
