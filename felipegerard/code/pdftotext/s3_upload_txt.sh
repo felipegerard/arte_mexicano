@@ -36,6 +36,10 @@ do
 	SYSTEM="Mac OSX"
 	shift
 	;;
+	-n|--dry-run)
+	DRYRUN='echo '
+	shift
+	;;
 	-p|--parallel_args)
 	PARALLEL="$2"
 	shift
@@ -89,20 +93,21 @@ else
     else
 	QUIET='--quiet'
     fi
-    find $ORIGIN \
+    folders=`find $ORIGIN \
 	| grep '/txt$' \
-	| cut -d'/' -f2-3 \
+	| sed $SED_FLAG 's#(.+)(/)([^/]+/txt)$#\3#'`
+    echo $folders \
+	| tr ' ' '\n' \
 	| parallel $COR $PARALLEL \
-	    aws s3 cp $QUIET --recursive $ORIGIN/{} s3://$BUCKET/{}
+	    $DRYRUN aws s3 cp $QUIET --recursive $ORIGIN/{} s3://$BUCKET/{}
     if [ $DELETE ]
 	then
-	    find $ORIGIN \
-		| grep '/txt$' \
-		| cut -d'/' -f2-3 \
-		| while read d;
-		    do
-			rm -r $ORIGIN/$d
-		    done
+	echo $folders \
+	    | tr ' ' '\n' \
+	    | while read d;
+		do
+		    $DRYRUN rm -r $ORIGIN/$d
+		done
     fi
 
 fi

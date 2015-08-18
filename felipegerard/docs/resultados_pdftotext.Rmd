@@ -1,0 +1,48 @@
+---
+title: "Extracción de textos"
+author: "Felipe Gerard"
+date: "18 de agosto de 2015"
+output: html_document
+---
+
+## Errores
+
+### JPGs y PDFs en la carpeta de PDFs
+
+* fables_choisies_muses_en_vers_par_j._de_la_fontaif
+* fables_de_la_fontaine_2
+* novedades_ano_2
+
+### PDFs corruptos
+
+Algunos PDFs con nombres no estandar por ejemplo: (prefijo)_cpt_### o bien (prefijo)_por_### en lugar de prefijo_int_###)
+
+* cimientos_del_artista_dibujante_y_pintor
+* encuentro
+
+### Nombres feos
+
+Los caracteres permitidos son **[0-9a-z_.\\-]**
+
+* america\`s_small_houses
+* ch.christofle_&_c
+* confesiones_de_jose_luis_cuevas_(repetido_fisicamente)
+* dada_&_surrealism
+* discovering_man\`s_past_in_the_americas
+* dolores_olmedo_patino_(1908-2002)
+* fotografia_y_pintura_¿dosmedios_diferentes¿
+* giovanni_bellini_by_philip_hendy_&_ludwing_goldscheider
+* grabados_en_madera__(repetido_fisicamente)
+* hieronymus_bosch_(repetida)
+* hogarth\`s_graphic_works
+* i\`art_totalitaire
+* jose_puche_alvarez_(1896-1979)_historia_de_un_compromiso
+* l\`arte_delle_pietre_dure
+* la_pintura_espanola_(repetida)
+* meubles_d\`art
+* mexico_en_el_siglo_xix_2012-11-08_18;57;14_(full)
+* mexico_en_el_siglo_xix_2012-11-08_19;37;00_(full)
+* notes_sur_l\`emission_en_france_des_monnaies_decimales_de_bronze_1852-1865
+* pintura_de_juan_o\`gorman_en_la_biblioteca_gertrudis_bocanegra_de_patzcuaro_michoacan
+* ward\`s_mexico_vol.ii
+

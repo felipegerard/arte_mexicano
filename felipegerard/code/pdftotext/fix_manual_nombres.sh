@@ -1,7 +1,7 @@
 
 # Problemas con S3 --> txt
-aws s3 ls einformativa/biblioteca_arte/ > temp
-cat temp | sed -E 's/ +PRE (.+)\/$/\1/' > lista_s3.txt
+aws s3 ls einformativa/biblioteca_arte/ > temp_list
+cat temp_list | sed -E 's/ +PRE (.+)\/$/\1/' > lista_s3.txt
 ls > lista_local.txt
 grep -v -f lista_local.txt lista_s3.txt
 grep -v -f lista_local.txt lista_s3.txt | while read d; do aws s3 ls einformativa/biblioteca_arte/$d/; done
@@ -35,3 +35,6 @@ find . \
 ## pdfs corruptos? (nombre no estandar por ejemplo: prefijo_cpt_### o bien prefijo_por_### en lugar de prefijo_int_###)
 #cimientos_del_artista_dibujante_y_pintor
 #encuentro
+
+## Carpetas con nombres raros
+< lista_s3.txt egrep -i '[^0-9a-z_.\-]+'
