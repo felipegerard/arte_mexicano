@@ -3,3 +3,4 @@ data
 aws
 temp
 *.swp
+.ipynb_checkpoints
