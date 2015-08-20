@@ -30,7 +30,7 @@ function txt2psv() {
 	| grep -E '.' \
 	| sort \
 	| uniq -c \
-	| sed -E 's/ +([^ ]+) ([^ ]+)/\1|\2/' \
+	| sed -E 's/ *([^ ]+) ([^ ]+)/\1|\2/' \
 	> $2
 }
 export -f txt2psv
