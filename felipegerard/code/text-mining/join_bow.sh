@@ -38,7 +38,8 @@ else
 	then
 	    find $FROM \
 		| sed 1d \
-		| parallel --keep-order $PARALLEL "< {} awk -F'|' '{print \"{/.}\" \"|\" \$2 \"|\" \$1}'" \
+		| parallel --keep-order $PARALLEL "< {} awk -F'|' 'BEGIN {OFS=\"|\"}{print \"{/.}\", \$2, \$1}'" \
+		| awk -f add_numbers_bow.awk \
 	    > $TO
 	fi
     fi

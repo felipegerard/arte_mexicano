@@ -20,3 +20,4 @@ vignettes/*.pdf
 .zcompdump
 .zsh_history
 .zshrc
+.Rproj.user
