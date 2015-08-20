@@ -1,11 +1,39 @@
 ---
-title: "Extracción de textos"
+title: "Extracción y minería de textos"
 author: "Felipe Gerard"
 date: "18 de agosto de 2015"
 output: html_document
 ---
 
+## Procedimiento:
+
+### Extracción de textos a partir de los PDFs
+
+1. Bajar los PDFs de un libro.
+2. Extraer el texto de cada PDF a la carpeta txt.
+3. Borrar los PDFs y volver a (1).
+
+Como en Einfo hicieron el mismo trabajo pero en la colección completa, en el futuro bastará bajarlos vía SSH...
+
+### Conversión a formato apropiado para minería de textos
+
+Independientemente de la fuente de los textos, se puede aplicar lo mismo (o casi) para minar los textos. Nada más habrá que tomar en cuenta la estructura de las carpetas.
+
+1. Quitar la puntuación y los caracteres especiales.
+2. Pasar todo a minúsculas (esto podría cambiar si vemos que no funciona tan bien).
+3. Generar conteos de las palabras _por libro_.
+
+Más adelante exploraremos la posibilidad de hacer la minería por página, pero para una primera prueba lo haremos por libro.
+
+### Minería de textos
+
+Dado un query (un texto), queremos un texto de la colección con contenido similar. En primera instancia probaremos por libro. Según el tamaño del problema luego veremos si es factible hacerlo por página o si se requerirá algo como un proceso de dos pasos (ie. primero elegir libro y luego página o algo similar).
+
 ## Errores
+
+### Lectura errónea de los textos
+
+`pdftotext` lee mal algunas fuentes: `C A T Á L O G O DE L A S O B R A S`, `P r l n t e d In S p a l n`. En algunos libros los problemas son aislados, pero en otros hay páginas enteras con este problema. La dificultad radica en que corregir esto es un problema muy costoso computacionalmente. Esperemos que Einfo no haya tenido el mismo problema, aunque probablemente viene desde la transformación a PDF.
 
 ### JPGs y PDFs en la carpeta de PDFs
 
@@ -20,7 +48,7 @@ Algunos PDFs con nombres no estandar por ejemplo: (prefijo)_cpt_### o bien (pref
 * cimientos_del_artista_dibujante_y_pintor
 * encuentro
 
-### Nombres feos
+### Carpetas con nombres feos
 
 Los caracteres permitidos son **[0-9a-z_.\\-]**
 
