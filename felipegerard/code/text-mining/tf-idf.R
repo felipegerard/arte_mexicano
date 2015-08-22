@@ -47,7 +47,9 @@ clean_corpus <- function(corp,
   #Corpus(VectorSource(corp))
 }
 
-
+reader_fun <- function(x, id){
+  readPlain(x, id = id)
+}
 # Control -----------------------------------------------------------------
 
 min_wordlength <- 2
@@ -60,10 +62,22 @@ allowed_languages <- c('spanish','english',
 ## OJO: Falta detectar el lenguaje para quitar stopwords!!!!
 
 #dir <- DirSource(directory = 'code/text-mining/test/full')
-dir <- DirSource(directory = 'code/text-mining/test-by-page',
-                 pattern = '[0-9]{5}.txt',
-                 recursive = T)
-corp_1 <- VCorpus(dir, readerControl = list(readPlain))
+# dir <- DirSource(directory = 'code/text-mining/test-by-page',
+#                  pattern = '[0-9]{5}.txt',
+#                  recursive = T)
+pages <- list.files('code/text-mining/test-by-page',
+                    pattern = '[0-9]{5}.txt',
+                    full.names = T,
+                    recursive = T) %>%
+  grep(pattern = '/full/', invert = T, value = T)
+
+dir <- URISource(pages)
+corp_1 <- VCorpus(dir, readerControl = list(reader=readPlain))
+# Agregamos los nombres de los libros a los metadatos
+# Asumimos que la estructura es <ruta a libros>/libro/txt/archivo.txt
+for(i in 1:length(corp_1)){
+  corp_1[[i]]$meta$origin <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages[i])
+}
 corp_clean <- clean_corpus(corp_1, mc.cores = 6, allowed_languages = allowed_languages)
 
 corp_clean
@@ -71,25 +85,28 @@ corp_clean[[2]]$meta
 corp_clean[[2]]$content
 
 docnames <- sapply(corp_clean, function(x) meta(x)$id)
+books <- sapply(corp_clean, function(x) meta(x)$origin)
 languages <- mclapply(mc.cores = 6,
                       corp_clean,
                       function(x) textcat(x$content)) %>%
   unlist
-meta <- data.frame(id=docnames, lang=languages) # No detecta tan bien...
+meta <- data.frame(origin=books,
+                   id=docnames,
+                   lang=languages) # No detecta tan bien... Poner moda por libro?
 
 tdm_1 <- TermDocumentMatrix(corp_clean,
                             control=list(wordLengths = c(min_wordlength, Inf),
                                          weighting = function(x)
                                            weightSMART(x, spec='ntc')))
 dictionary_1 <- tdm_1$dimnames$Terms
-mat_1 <- sparseMatrix(i=tdm_1$i, j=tdm_1$j, x=tdm_1$v)
+mat_1 <- sparseMatrix(i=tdm_1$i, j=tdm_1$j, x=tdm_1$v, dimnames = tdm_1$dimnames)
 tdm_1$dimnames$Docs # Igual a docnames: identical(tdm_1$dimnames$Docs, y = docnames)
 
 
 # Ejemplo -----------------------------------------------------------------
 
 #as.character(corp_clean[[8]])
-query  <- 'la transformación del alma es un momento de mucha filosofía y reencuentro'
+query  <- 'african primitive art Gauguin expression'
 query_lang <- textcat(query)
 
 #limpieza del query
@@ -110,11 +127,12 @@ out <- data.frame(id=docnames,
                   score=scores) %>%
   filter(score != 0) %>%
   left_join(meta) %>%
-  arrange(desc(lang == query_lang), lang, desc(score)) ### Hay que pensar esto mejor
+  arrange(desc(score))
+  #arrange(desc(lang == query_lang), lang, desc(score)) ### Hay que pensar esto mejor
 
 # Resultados
 out %>% head(10)
-ver <- out$id[2]
+ver <- out$id[1] %>% as.character
 content <- tm_filter(corp_1, FUN = function(x) x$meta$id == ver)[[1]]$content
 # La página tal cual
 content
@@ -125,8 +143,9 @@ query_grep <- query_clean[[1]]$content %>%
   gsub(pattern = '^ ', replacement = '') %>%
   gsub(pattern = ' ', replacement = '|')
 grep(query_grep, content, value = T, ignore.case = T)
-
-
+# Las palabras relevantes para el match
+relevant <- mat_1[,ver] * query_vec_2
+relevant[relevant > 0,]
 
 
 
