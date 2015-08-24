@@ -65,7 +65,7 @@ allowed_languages <- c('spanish','english',
 # dir <- DirSource(directory = 'code/text-mining/test-by-page',
 #                  pattern = '[0-9]{5}.txt',
 #                  recursive = T)
-pages <- list.files('code/text-mining/test-by-page',
+pages <- list.files('code/text-mining/test-by-page', #'code/pdftotext/txt/', #
                     pattern = '[0-9]{5}.txt',
                     full.names = T,
                     recursive = T) %>%
@@ -78,7 +78,7 @@ corp_1 <- VCorpus(dir, readerControl = list(reader=readPlain))
 for(i in 1:length(corp_1)){
   corp_1[[i]]$meta$origin <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages[i])
 }
-corp_clean <- clean_corpus(corp_1, mc.cores = 6, allowed_languages = allowed_languages)
+corp_clean <- clean_corpus(corp_1, allowed_languages = allowed_languages)
 
 corp_clean
 corp_clean[[2]]$meta
@@ -107,6 +107,8 @@ tdm_1$dimnames$Docs # Igual a docnames: identical(tdm_1$dimnames$Docs, y = docna
 
 #as.character(corp_clean[[8]])
 query  <- 'african primitive art Gauguin expression'
+#query <- corp_1[[999]]$content %>% paste(collapse=' ')
+query <- 'Hidalgo'
 query_lang <- textcat(query)
 
 #limpieza del query
@@ -132,7 +134,7 @@ out <- data.frame(id=docnames,
 
 # Resultados
 out %>% head(10)
-ver <- out$id[1] %>% as.character
+ver <- out$id[2] %>% as.character
 content <- tm_filter(corp_1, FUN = function(x) x$meta$id == ver)[[1]]$content
 # La página tal cual
 content
