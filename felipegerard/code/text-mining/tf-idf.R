@@ -12,6 +12,17 @@ library(textcat)
 
 # Funciones ---------------------------------------------------------------
 
+# Uso de memoria
+lh <- function(l){
+  require(pryr)
+  options(scipen=999)
+  data.frame(
+    object = l,
+    mb = round((sapply(l, function(x) object_size(eval(parse(text = x)))))/2^20, 2)
+  )
+}
+
+# Limpieza
 clean_corpus <- function(corp,
                          stem = FALSE,
                          remove_stopwords = TRUE,
@@ -36,7 +47,7 @@ clean_corpus <- function(corp,
                    if(lang_cond && remove_stopwords){
                      x <- removeWords(x, stopwords(lang))
                    }
-                   if(lang_cond){
+                   if(lang_cond && stem){
                      x <- strsplit(x, " ")[[1]]
                      x <- wordStem(x, language=lang)
                      x <- paste(x, collapse=" ")
@@ -93,7 +104,7 @@ system.time({
                              allowed_languages = allowed_languages)
 })
 
-# Para los primeros 75 libros con 6 procesos se tarda como 110 segs
+# Para los primeros 75 libros con 6 procesos se tarda como 110 segs con stemming y 89 sin stemming
 
 corp_clean
 corp_clean[[2]]$meta
@@ -122,14 +133,18 @@ tdm_1$dimnames$Docs # Igual a docnames: identical(tdm_1$dimnames$Docs, y = docna
 # Ejemplo -----------------------------------------------------------------
 
 #as.character(corp_clean[[8]])
-query  <- 'african primitive art Gauguin expression'
+#query  <- 'african primitive art Gauguin expression'
 #query <- corp_1[[999]]$content %>% paste(collapse=' ')
-query <- 'Hidalgo'
+#query <- 'Hidalgo'
+#query <- 'primitive paintings'
+query <- 'american art XX century'
 query_lang <- textcat(query)
 
 #limpieza del query
 query_clean <- Corpus(VectorSource(query))
-query_clean <- clean_corpus(query_clean)
+query_clean <- clean_corpus(query_clean,
+                            stem = FALSE,
+                            remove_stopwords = TRUE)
 query_vec_1 <- TermDocumentMatrix(query_clean, 
                                   control = list(dictionary = dictionary_1,
                                                  wordLengths=c(min_wordlength, Inf))) 
@@ -150,7 +165,7 @@ out <- data.frame(id=docnames,
 
 # Resultados
 out %>% head(10)
-ver <- out$id[2] %>% as.character
+ver <- out$id[1] %>% as.character
 content <- tm_filter(corp_1, FUN = function(x) x$meta$id == ver)[[1]]$content
 # La página tal cual
 content
