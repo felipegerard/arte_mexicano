@@ -171,7 +171,7 @@ allowed_languages <- c('spanish','english',
 #                  pattern = '[0-9]{5}.txt',
 #                  recursive = T)
 system.time({
-  pages <- list.files('code/text-mining/test-by-page', #'code/pdftotext/txt/', #
+  pages <- list.files('data/txt', #'code/text-mining/test-by-page', #'code/pdftotext/txt/', #
                       pattern = '[0-9]{5}.txt',
                       full.names = T,
                       recursive = T) %>%
@@ -179,6 +179,8 @@ system.time({
   
   dir <- URISource(pages)
   corp_1 <- VCorpus(dir, readerControl = list(reader=readPlain))
+})
+system.time({
   # Agregamos los nombres de los libros a los metadatos
   # Asumimos que la estructura es <ruta a libros>/libro/txt/archivo.txt
   for(i in 1:length(corp_1)){
