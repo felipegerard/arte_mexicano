@@ -13,43 +13,50 @@ library(textcat)
 # Funciones ---------------------------------------------------------------
 
 clean_corpus <- function(corp,
+                         stem = FALSE,
+                         remove_stopwords = TRUE,
+                         null_text = 'TEXTOBASURA',
                          mc.cores = 4,
                          allowed_languages = c('spanish','english',
                                                'french','german',
                                                'portugese')){
-  corp <- tm_map(#mc.cores = mc.cores,
-                   corp,
-                   function(x){
-                     meta <- x$meta
-                     x <- gsub('\\f', '', x$content)
-                     x <- paste0(x, collapse = ' ')
-                     x <- gsub('[0-9]{1,3}', '', x)
-                     x <- tolower(x)
-                     x <- gsub('[^ a-záéíóúüñ0-9]', '', x)
-                     x <- gsub(' +', ' ', x)
-                     lang <- textcat(x)
-                     cat(lang)
-                     lang_cond <- !is.na(lang) && (lang %in% allowed_languages)
-                     if(lang_cond){
-                       x <- removeWords(x, stopwords(lang))
-                     }
+  corp <- tm_map(mc.cores = mc.cores,
+                 corp,  
+                 function(x){
+                   meta <- x$meta
+                   x <- gsub('\\f', '', x$content)
+                   x <- paste0(x, collapse = ' ')
+                   x <- gsub('[0-9]{1,3}', '', x)
+                   x <- tolower(x)
+                   x <- gsub('[^ a-záéíóúüñ0-9]', '', x)
+                   x <- gsub(' +', ' ', x)
+                   lang <- textcat(x)
+                   cat(lang)
+                   lang_cond <- !is.na(lang) && (lang %in% allowed_languages)
+                   if(lang_cond && remove_stopwords){
+                     x <- removeWords(x, stopwords(lang))
+                   }
+                   if(lang_cond){
                      x <- strsplit(x, " ")[[1]]
-                     if(lang_cond){
-                       x <- wordStem(x, language=lang)
-                     }
+                     x <- wordStem(x, language=lang)
                      x <- paste(x, collapse=" ")
-                     x <- gsub(' +', ' ', x)
-                     if(nchar(x) < 3 || !grepl('[^ ]{2}', x)) x <- 'TEXTOBASURA'
-                     #list(content=x, meta=meta)
-                     PlainTextDocument(x = x, author = meta$author, datetimestamp = meta$datetimestamp, description = meta$description, heading = meta$heading, id = meta$id, language = ifelse(lang_cond, lang, ''), origin = meta$origin)
-                   })
+                   }
+                   x <- gsub(' +', ' ', x)
+                   if(nchar(x) < 3 || !grepl('[^ ]{2}', x)) x <- null_text
+                   #list(content=x, meta=meta)
+                   PlainTextDocument(x = x,
+                                     author = meta$author,
+                                     datetimestamp = meta$datetimestamp,
+                                     description = meta$description,
+                                     heading = meta$heading,
+                                     id = meta$id,
+                                     language = ifelse(lang_cond, lang, ''),
+                                     origin = meta$origin)
+                 })
   corp
   #Corpus(VectorSource(corp))
 }
 
-reader_fun <- function(x, id){
-  readPlain(x, id = id)
-}
 # Control -----------------------------------------------------------------
 
 min_wordlength <- 2
@@ -78,7 +85,15 @@ corp_1 <- VCorpus(dir, readerControl = list(reader=readPlain))
 for(i in 1:length(corp_1)){
   corp_1[[i]]$meta$origin <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages[i])
 }
-corp_clean <- clean_corpus(corp_1, allowed_languages = allowed_languages)
+system.time({
+  corp_clean <- clean_corpus(corp_1,
+                             mc.cores = 6,
+                             stem = FALSE,
+                             remove_stopwords = TRUE,
+                             allowed_languages = allowed_languages)
+})
+
+# Para los primeros 75 libros con 6 procesos se tarda como 110 segs
 
 corp_clean
 corp_clean[[2]]$meta
@@ -86,10 +101,11 @@ corp_clean[[2]]$content
 
 docnames <- sapply(corp_clean, function(x) meta(x)$id)
 books <- sapply(corp_clean, function(x) meta(x)$origin)
-languages <- mclapply(mc.cores = 6,
-                      corp_clean,
-                      function(x) textcat(x$content)) %>%
-  unlist
+# languages <- mclapply(mc.cores = 6,
+#                       corp_clean,
+#                       function(x) textcat(x$content)) %>%
+#   unlist
+languages <- sapply(corp_clean, function(x) meta(x)$language)
 meta <- data.frame(origin=books,
                    id=docnames,
                    lang=languages) # No detecta tan bien... Poner moda por libro?

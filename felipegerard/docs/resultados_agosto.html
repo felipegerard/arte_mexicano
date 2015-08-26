@@ -67,10 +67,11 @@ img {
 </div>
 
 
-<div id="procedimiento" class="section level2">
-<h2>Procedimiento:</h2>
-<div id="extraccion-de-textos-a-partir-de-los-pdfs" class="section level3">
-<h3>Extracción de textos a partir de los PDFs</h3>
+<div id="elt" class="section level2">
+<h2>ELT</h2>
+<div id="e-extraccion-de-textos-a-partir-de-los-pdfs" class="section level3">
+<h3>[E] Extracción de textos a partir de los PDFs</h3>
+<p>Tenemos dos versiones, ambas basadas en el comando <code>pdftotext</code>. Una extrae los PDFs de directorios locales y la otra está pensada para usarse cuando se tienen en un S3 en lugar de localmente. Los pasos que hace la segunda versión son:</p>
 <ol style="list-style-type: decimal">
 <li>Bajar los PDFs de un libro.</li>
 <li>Extraer el texto de cada PDF a la carpeta txt.</li>
@@ -78,23 +79,62 @@ img {
 </ol>
 <p>Como en Einfo hicieron el mismo trabajo pero en la colección completa, en el futuro bastará bajarlos vía SSH…</p>
 </div>
-<div id="conversion-a-formato-apropiado-para-mineria-de-textos" class="section level3">
-<h3>Conversión a formato apropiado para minería de textos</h3>
-<p>Independientemente de la fuente de los textos, se puede aplicar lo mismo (o casi) para minar los textos. Nada más habrá que tomar en cuenta la estructura de las carpetas.</p>
+<div id="lt-conversion-a-formato-apropiado-para-mineria-de-textos" class="section level3">
+<h3>[LT] Conversión a formato apropiado para minería de textos</h3>
+<p>Independientemente de la fuente de los textos, se puede aplicar lo mismo (o casi) para minar los textos. Nada más habrá que tomar en cuenta la estructura de las carpetas. En este primer enfoque hacemos tanto la carga como la transformación (limpieza) en R:</p>
 <ol style="list-style-type: decimal">
-<li>Quitar la puntuación y los caracteres especiales.</li>
-<li>Pasar todo a minúsculas (esto podría cambiar si vemos que no funciona tan bien).</li>
-<li>Generar conteos de las palabras <em>por libro</em>.</li>
+<li>[L] Cargamos los datos a un Corpus del paquete tm.</li>
+<li>[T] Transformamos los datos a un formato apropiado para la minería:
+<ul>
+<li>Limpiamos los datos:
+<ul>
+<li>Quitamos caracteres especiales, puntuación, exceso de espacios, etc.</li>
+<li>Quitamos “stopwords”.</li>
+<li>Hacemos <em>stemming</em>. Los experimentos sugieren que tal vez convenga <em>no</em> hacer stemming.</li>
+</ul></li>
+<li>Generamos un Corpus limpio con metadatos.</li>
+<li>Finalmente, generamos la matriz de términos-documentos, con pesos dados según la aplicación:
+<ul>
+<li>Para tópicos usamos frecuencias (TF) y hacemos el análisis <em>por libro</em>.</li>
+<li>Para búsquedas usamos TF-IDF y hacemos el análisis <em>por página</em>.</li>
+</ul></li>
+</ul></li>
 </ol>
-<p>Más adelante exploraremos la posibilidad de hacer la minería por página, pero para una primera prueba lo haremos por libro.</p>
-</div>
-<div id="mineria-de-textos" class="section level3">
-<h3>Minería de textos</h3>
-<p>Dado un query (un texto), queremos un texto de la colección con contenido similar. En primera instancia probaremos por libro. Según el tamaño del problema luego veremos si es factible hacerlo por página o si se requerirá algo como un proceso de dos pasos (ie. primero elegir libro y luego página o algo similar).</p>
+<p>La matriz de términos documentos es toda la información que necesitan los algoritmos para correr.</p>
 </div>
 </div>
-<div id="errores" class="section level2">
-<h2>Errores</h2>
+<div id="mineria-de-textos" class="section level2">
+<h2>Minería de textos</h2>
+<div id="sistema-completo" class="section level3">
+<h3>Sistema completo</h3>
+<p>El sistema que queremos implementar es una búsqueda avanzada inteligente. Queremos que tenga al menos los siguientes componentes:</p>
+<ol style="list-style-type: decimal">
+<li>Filtro por tópicos calculados automáticamente usando (LDA).</li>
+<li>Búsqueda por palabras, frases o textos utilizando la metodología TF-IDF (primer entregable).</li>
+<li>Un botón que utilice la metodología del punto anterior para encontrar textos similares al que se está viendo.</li>
+</ol>
+<p>La idea es que los tópicos se complementen con la búsqueda para permitir la mayor precisión posible en la búsqueda. Si por alguna razón los tópicos automáticos no fueran satisfactorios, dado que se planea que sean por libro, se podría hacer una clasificación manual. A continuación describimos en un poco más de detalle los componentes.</p>
+</div>
+<div id="topicos-automaticos-lda" class="section level3">
+<h3>Tópicos automáticos: LDA</h3>
+<p>Actualmente estamos utilizando la técnica conocida cómo <em>LDA</em> (Latent Dirichlet Allocation) para extraer los tópicos o temas reelevantes de los textos. Creemos que es mejor hacer la extracción de los tópicos a nivel de libro ya que los libros se tratan de un tema en particular. También estamos investigando si es posible extraer subtópicos, es decir una especie de tópicos jerarquzados o bien si es posible mapear más de un tema a cada documento.</p>
+<p>Se han realizado pruebas para ver la efectividad de esta técnica, cambiando el parámetro del número de tópicos, sin embargo este depende de cada texto, por lo que estamos tratando de inferir un parámetro adecuado. También se propone dentro del análisis utilizar el corpus sin <em>stemming</em> ya que no se interpreta con facilidad el tema y consideramos que es mejor así.</p>
+</div>
+<div id="busqueda-inteligente-tf-idf" class="section level3">
+<h3>Búsqueda inteligente: TF-IDF</h3>
+<p>Como está explicado en el primer entregable, la técnica TF-IDF es esencialmente una versión mejorada de <code>grep</code>. Dada una colección de palabras, regresa los textos más parecidos, tomando en cuenta los conteos de las palabras y su popularidad. Se basa en dos premisas básicas, que simplistamente son: (1) si dos textos tienen muchas ocurrencias de la misma palabra, significa que se se parecen y (2) si una palabra es poco común, entonces que dos textos la contengan aumenta su similitud más que si contienen palabras comunes.</p>
+</div>
+<div id="opcion-de-mas-como-este" class="section level3">
+<h3>Opción de “más como éste”</h3>
+<p>Si se está viendo un texto, se puede utilizar como query para la búsqueda y así encontrar páginas similares fácilmente.</p>
+</div>
+<div id="notas" class="section level3">
+<h3>Notas</h3>
+<p>Cabe mencionar que dado que los algoritmos propuestos son semisupervisados, no tiene mucho sentido quedarse con muestras de validación y prueba. Decimos que es semisupervisado porque aunque no hay una variable de respuesta, sí podemos evaluar el desempeño manualmente y podemos saber si la búsqueda fue exitosa o no. La etapa de validación en este caso tendrá que ser con criterio experto humano y ver si los resultados son satisfactorios o no.</p>
+</div>
+</div>
+<div id="apendice-errores-e-inconsistencias" class="section level2">
+<h2>Apéndice: Errores e inconsistencias</h2>
 <div id="lectura-erronea-de-los-textos" class="section level3">
 <h3>Lectura errónea de los textos</h3>
 <p><code>pdftotext</code> lee mal algunas fuentes: <code>C A T Á L O G O DE L A S O B R A S</code>, <code>P r l n t e d In S p a l n</code>. En algunos libros los problemas son aislados, pero en otros hay páginas enteras con este problema. La dificultad radica en que corregir esto es un problema muy costoso computacionalmente. Esperemos que Einfo no haya tenido el mismo problema, aunque probablemente viene desde la transformación a PDF.</p>

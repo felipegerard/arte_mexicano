@@ -5,9 +5,11 @@ date: "18 de agosto de 2015"
 output: html_document
 ---
 
-## Procedimiento:
+## ELT
 
-### Extracción de textos a partir de los PDFs
+### [E] Extracción de textos a partir de los PDFs
+
+Tenemos dos versiones, ambas basadas en el comando `pdftotext`. Una extrae los PDFs de directorios locales y la otra está pensada para usarse cuando se tienen en un S3 en lugar de localmente. Los pasos que hace la segunda versión son:
 
 1. Bajar los PDFs de un libro.
 2. Extraer el texto de cada PDF a la carpeta txt.
@@ -15,21 +17,54 @@ output: html_document
 
 Como en Einfo hicieron el mismo trabajo pero en la colección completa, en el futuro bastará bajarlos vía SSH...
 
-### Conversión a formato apropiado para minería de textos
+### [LT] Conversión a formato apropiado para minería de textos
 
-Independientemente de la fuente de los textos, se puede aplicar lo mismo (o casi) para minar los textos. Nada más habrá que tomar en cuenta la estructura de las carpetas.
+Independientemente de la fuente de los textos, se puede aplicar lo mismo (o casi) para minar los textos. Nada más habrá que tomar en cuenta la estructura de las carpetas. En este primer enfoque hacemos tanto la carga como la transformación (limpieza) en R:
 
-1. Quitar la puntuación y los caracteres especiales.
-2. Pasar todo a minúsculas (esto podría cambiar si vemos que no funciona tan bien).
-3. Generar conteos de las palabras _por libro_.
+1. [L] Cargamos los datos a un Corpus del paquete tm.
+2. [T] Transformamos los datos a un formato apropiado para la minería:
+    - Limpiamos los datos:
+        + Quitamos caracteres especiales, puntuación, exceso de espacios, etc.
+        + Quitamos "stopwords".
+        + Hacemos _stemming_. Los experimentos sugieren que tal vez convenga _no_ hacer stemming.
+    - Generamos un Corpus limpio con metadatos.
+    - Finalmente, generamos la matriz de términos-documentos, con pesos dados según la aplicación:
+        + Para tópicos usamos frecuencias (TF) y hacemos el análisis _por libro_.
+        + Para búsquedas usamos TF-IDF y hacemos el análisis _por página_.
 
-Más adelante exploraremos la posibilidad de hacer la minería por página, pero para una primera prueba lo haremos por libro.
+La matriz de términos documentos es toda la información que necesitan los algoritmos para correr.
 
-### Minería de textos
+## Minería de textos
 
-Dado un query (un texto), queremos un texto de la colección con contenido similar. En primera instancia probaremos por libro. Según el tamaño del problema luego veremos si es factible hacerlo por página o si se requerirá algo como un proceso de dos pasos (ie. primero elegir libro y luego página o algo similar).
+### Sistema completo
 
-## Errores
+El sistema que queremos implementar es una búsqueda avanzada inteligente. Queremos que tenga al menos los siguientes componentes:
+
+1. Filtro por tópicos calculados automáticamente usando (LDA).
+2. Búsqueda por palabras, frases o textos utilizando la metodología TF-IDF (primer entregable).
+3. Un botón que utilice la metodología del punto anterior para encontrar textos similares al que se está viendo.
+
+La idea es que los tópicos se complementen con la búsqueda para permitir la mayor precisión posible en la búsqueda. Si por alguna razón los tópicos automáticos no fueran satisfactorios, dado que se planea que sean por libro, se podría hacer una clasificación manual. A continuación describimos en un poco más de detalle los componentes.
+
+### Tópicos automáticos: LDA
+
+Actualmente estamos utilizando la técnica conocida cómo _LDA_ (Latent Dirichlet Allocation) para extraer los tópicos o temas reelevantes de los textos. Creemos que es mejor hacer la extracción de los tópicos a nivel de libro ya que los libros se tratan de un tema en particular. También estamos investigando si es posible extraer subtópicos, es decir una especie de tópicos jerarquzados o bien si es posible mapear más de un tema a cada documento. 
+
+Se han realizado pruebas para ver la efectividad de esta técnica, cambiando el parámetro del número de tópicos, sin embargo este depende de cada texto, por lo que estamos tratando de inferir un parámetro adecuado. También se propone dentro del análisis utilizar el corpus sin _stemming_ ya que no se interpreta con facilidad el tema y consideramos que es mejor así.
+
+### Búsqueda inteligente: TF-IDF
+
+Como está explicado en el primer entregable, la técnica TF-IDF es esencialmente una versión mejorada de `grep`. Dada una colección de palabras, regresa los textos más parecidos, tomando en cuenta los conteos de las palabras y su popularidad. Se basa en dos premisas básicas, que simplistamente son: (1) si dos textos tienen muchas ocurrencias de la misma palabra, significa que se se parecen y (2) si una palabra es poco común, entonces que dos textos la contengan aumenta su similitud más que si contienen palabras comunes.
+
+### Opción de "más como éste"
+
+Si se está viendo un texto, se puede utilizar como query para la búsqueda y así encontrar páginas similares fácilmente.
+
+### Notas
+
+Cabe mencionar que dado que los algoritmos propuestos son semisupervisados, no tiene mucho sentido quedarse con muestras de validación y prueba. Decimos que es semisupervisado porque aunque no hay una variable de respuesta, sí podemos evaluar el desempeño manualmente y podemos saber si la búsqueda fue exitosa o no. La etapa de validación en este caso tendrá que ser con criterio experto humano y ver si los resultados son satisfactorios o no.
+
+## Apéndice: Errores e inconsistencias
 
 ### Lectura errónea de los textos
 
