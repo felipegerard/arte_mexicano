@@ -176,27 +176,48 @@ system.time({
                       full.names = T,
                       recursive = T) %>%
     grep(pattern = '/full/', invert = T, value = T)
-  #pages <- pages[1:50000]
+  pages1 <- pages[1:10000]
+  pages2 <- pages[10001:20000]
   
-  dir <- URISource(pages)
-  corp_1 <- VCorpus(dir, readerControl = list(reader=readPlain))
+  dir1 <- URISource(pages1)
+  dir2 <- URISource(pages2)
+  corp_1 <- VCorpus(dir1, readerControl = list(reader=readPlain))
+  corp_2 <- VCorpus(dir2, readerControl = list(reader=readPlain))
 })
 system.time({
   # Agregamos los nombres de los libros a los metadatos
   # Asumimos que la estructura es <ruta a libros>/libro/txt/archivo.txt
-  for(i in 1:length(corp_1)){
-    corp_1[[i]]$meta$origin <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages[i])
-  }
-})
-system.time({
-  corp_clean <- clean_corpus(corp_1,
-                             mc.cores = 6,
-                             stem = FALSE,
-                             remove_stopwords = TRUE,
-                             allowed_languages = allowed_languages)
+  
+  meta(corp_1, 'origin', type='local') <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages1)
+  meta(corp_2, 'origin', type='local') <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages2)
 })
 
-# Para los primeros 75 libros (~ 100 MB) con 6 procesos se tarda como 110 segs con stemming y 89 sin stemming
+system.time({
+  corp_clean1 <- clean_corpus(corp_1,
+                              mc.cores = 6,
+                              stem = FALSE,
+                              remove_stopwords = TRUE,
+                              allowed_languages = allowed_languages)
+  print('Terminado 1')
+  corp_clean2 <- clean_corpus(corp_2,
+                              mc.cores = 6,
+                              stem = FALSE,
+                              remove_stopwords = TRUE,
+                              allowed_languages = allowed_languages)
+})
+
+tdm_1 <- TermDocumentMatrix(corp_clean1,
+                            control=list(wordLengths = c(min_wordlength, Inf),
+                                         weighting = function(x)
+                                           weightSMART(x, spec='ntc')))
+tdm_2 <- TermDocumentMatrix(corp_clean2,
+                            control=list(wordLengths = c(min_wordlength, Inf),
+                                         weighting = function(x)
+                                           weightSMART(x, spec='ntc')))
+tdm_1
+tdm_2
+tdm <- c(tdm_1, tdm_2)
+tdm
 
 # Para los primeros 321 libros (~ 600 MB) con 6 procesos se tarda 427 segs en cargar los datos, 1058 segs en limpiarlos y 124 segs en generar la matriz de metadatos, la TDM, etc.
 
@@ -223,46 +244,3 @@ system.time({
   dictionary_1 <- tdm_1$dimnames$Terms
   mat_1 <- sparseMatrix(i=tdm_1$i, j=tdm_1$j, x=tdm_1$v, dimnames = tdm_1$dimnames)
 })
-#tdm_1$dimnames$Docs # Igual a docnames: identical(tdm_1$dimnames$Docs, y = docnames)
-
-
-# Ejemplo -----------------------------------------------------------------
-
-#as.character(corp_clean[[8]])
-#query  <- 'african primitive art Gauguin expression'
-#query <- corp_1[[999]]$content %>% paste(collapse=' ')
-#query <- 'Hidalgo'
-#query <- 'primitive paintings'
-#query <- 'México y las pinturas de Diego Rivera y Frida Kahlo'
-#query <- 'pintura en Uruapan Michoacán' # Muchas imágenes
-query <- 'arte colonial en Perú'
-
-system.time(out <- analyze(query, mat_1, dictionary_1, meta, min_wordlength, lang = 'spanish'))
-head(out$info, 10)
-print_results(out, corp_1, mat_1, 1)
-
-### HAY QUE EXCLUIR/MARCAR LAS PÁGINAS QUE CONTIENEN CASI PURAS IMÁGENES (CON AYUDA DE JARED), QUE SON ÍNDICES, ETC
-### 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
