@@ -1,0 +1,192 @@
+---
+title: "Extracción y minería de textos"
+author: "Felipe Gerard"
+date: "18 de agosto de 2015"
+output: html_document
+---
+
+## Resumen
+
+### Estructura de almacenamiento de datos
+
+Los archivos originales vienen agrupados por libro y por tipo de datos. Hay una carpeta por cada libro y dentro de ella hay una carpeta con los PDFs (`libro/pdf`) y otra con los JPGs (`libro/jpg`). Por lo tanto, decidimos almacenar los textos en una carpeta por separado (`libro/txt`), con los nombres correspondientes de los PDFs pero con terminación `.txt`. Adicionalmente, dentro de la carpeta de los textos hay una carpeta con el contenido completo del libro en un solo archivo (`libro/txt/full/libro.txt`). Más adelante describiremos cómo es que extrajimos los textos de los PDFs, pero por lo pronto, la estructura de las carpetas quedó como sigue:
+
+* Carpeta global con todo el contenido
+    + Carpeta de un libro
+        - PDF
+            * Un archivo `.pdf` por página
+        - JPG
+            * Un archivo `.jpg` por página
+        - TXT
+            * Un archivo `.txt` por página con el mismo nombre que los PDFs
+            * Full
+                + Un solo archivo `.txt` con el mismo nombre del libro
+
+### Estadísticas básicas
+
+- #FALTA#
+Número de libros extraidos:
+Número de textos totales: 365551
+Promedio de páginas por libro:
+Número de términos en el diccionario (sin stemming): 5704730
+Número de términos en el diccionario ( stemming): 
+Tamaño de los archivos Rdata
+Etc
+Etc
+
+## ELT
+
+En esta sección describiremos el proceso que seguimos para la extracción, carga y transformación de los datos. Procesar correctamente los datos es parte crucial del proyecto, pues los algoritmos tienen como insumo la información procesada.
+
+### [E] Extracción de textos a partir de los PDFs
+
+Hicimos varios códigos en `bash` alrededor del comando `pdftotext` para extraer los textos contenidos como metadatos en los PDFs. Originalmente generamos códigos locales para pruebas que extraen los textos de una colección de datos en el formato descrito arriba y ponen los textos en su lugar correspondiente. Tenemos dos versiones:
+
+* Versión básica (`parallel_pdftotext.sh`): Toma una carpeta con PDFs y los extrae en una carpeta objetivo. Además, lo hace en paralelo para aprovechar los diversos núcleos de la máquina. Este script es multipropósito y podrá ser utilizado por ejemplo al agregar nuevos libros a la colección.
+* Versión masiva (`mass_pdftotext.sh`): Recibe la carpeta con todos los libros y utiliza la versión básica para extraer los textos en la carpeta correspondiente de cada libro.
+
+Adicionalmente, el script `full_txt.sh` recibe el árbol completo de carpetas, pega los textos de cada libro y pone el resultado en la carpeta `libro/txt/full`.
+
+Dado que los PDFs de la colección ocupan aproximadamente 400 GB, puede resultar complicado y/o caro manejarlos todos. Para ello también creamos dos scripts que suponen que la información está en S3 y van bajando y borrando la información libro a libro con el fin de ahorrar espacio en la máquina local en la que se está procesando la información:
+
+* El primer script (`s3_pdftotext.sh`) baja los PDFs libro a libro y los extrae en una carpeta local, preservando la estructura deseada de los archivos. Es similar al script local masivo, pero la diferencia es que la información original está en S3. Después de procesar cada libro (las páginas se procesan en paralelo), borra los PDFs que se bajaron y de este modo sólo se necesita un disco con capacidad = tamaño del libro más grande + tamaño total de los textos. Después de este paso se debe correr también `full-txt.sh` si se quiere tener la versión completa (en lugar de por página) de los libros.
+* El segundo script (`s3_upload_txt.sh`) sube los resultados obtenidos en el script de conversión a texto a una carpeta en S3. La ventaja es que preserva la estructura de los archivos, por lo que basta correr el script de bajada una vez y el de subida una vez y ya está la colección de textos agregada en S3.
+
+### [LT] Conversión a formato apropiado para minería de textos
+
+La limpieza se puede llevar a cabo en `bash`. Sin embargo, hay algunas operaciones más sofisticadas que queremos hacer que sólo están en R. Por eso optamos por hacer la limpieza en R siguiendo los siguientes pasos:
+
+1. [L] Cargamos los datos a un `Corpus` del paquete `tm` (Text Mining).
+    * Podemos tomar que cada página o que cada libro correspondan a un documento, según la capacidad de procesamiento y lo que queramos hacer.
+    * Llenamos las partes relevantes de los metadatos. En el caso de tener un documento por libro, se tiene el nombre del libro y el idioma. Cuando es por página, guardamos el nombre del archivo `.txt` del que proviene la página, el libro en el que está y el lenguaje.
+    * Detectamos los lenguajes con el paquete `textcat`. Para los textos sucios no es muy preciso, pero por el momento no tenemos una mejor alternativa.
+2. [T] Transformamos los datos a un formato apropiado para la minería:
+    - Limpiamos los datos:
+        + Quitamos caracteres especiales, puntuación, exceso de espacios, etc.
+        + Quitamos "stopwords".
+        + Hacemos _stemming_: tomamos únicamente las raíces de las palabras pero ignoramos las terminaciones. Los experimentos sugieren que tal vez convenga _no_ hacer stemming, aunque esto representa un reto técnico (ver sección de Estadísticas abajo).
+    - Generamos un Corpus limpio con metadatos.
+    - Finalmente, generamos la matriz de términos-documentos, con pesos dados según la aplicación:
+        + Para tópicos usamos frecuencias (TF) y hacemos el análisis _por libro_.
+        + Para búsquedas usamos TF-IDF y hacemos el análisis _por página_.
+
+Cabe mencionar que como R hace todo en memoria, hacer el proceso anterior para la colección entera de textos es demasiado pesado. Sin embargo, dado que se puede procesar los textos independientemente unos de otros, optamos por procesarlos en _batches_ de un tamaño fijo (digamos 20,000 textos en el caso de que sea por página) y guardar tanto los `Corpus` limpios como sus matrices términos-documentos asociadas en archivos `.Rdata`. La ventaja de esto es que `tm` tiene manera de concatenar los `Corpus` y las matrices, de modo que se puede procesar por partes y luego juntar la información procesada sin problemas.
+
+Dado que la matriz de términos documentos es toda la información que necesitan los algoritmos para correr, bastará subir la matriz a la memoria para hacer recomendaciones.
+
+### Estadísticas y notas
+
+El corpus de los libros de esta colección, entendido como un texto por página, consta de #FALTA# textos y el archivo `.Rdata` en el que lo guardamos pesa aproximadamente 225 MB.
+
+Hemos tenido algo de problemas con la decisión de si debemos hacer stemming o no. La ventaja del stemming es que permite que las búsquedas sean más difusas, es decir, que tome como iguales a las palabras con las mismas raíces. Sin embargo, esto viene con dos problemas. El primero es que hay palabras con significados distintos pero raíces iguales, y el segundo es que al quitar las raíces, a veces se pierden partes distintivas del lenguaje de la búsqueda. Ambos problemas generan falsos positivos. El tema es que si no se hace stemming, hay otras complicaciones. Por ejemplo, la búsqueda es tan exacta que puede parecer tonta (por ejemplo no considera como iguales a una palabra y su plural). Otro problema es que dado que se manejan varios lenguajes y todos contribuyen al diccionario de palabras conocidas, éste puede hacerse enorme (alrededor de #FALTA# 5 millones de palabras) y resultar demasiado pesado para un sistema que corra en vivo. 
+
+## Minería de textos
+
+### Sistema completo
+
+Para aprovechar los datos al máximo queremos implementar una búsqueda avanzada inteligente. Para ello necesitaremos utilizar al menos dos algoritmos de minería de textos: uno para generar tópicos automáticos en los que podamos clasificar los textos y otro para la búsqueda inteligente dado que el usuario introdujo una consulta. Planeamos introducir la siguiente estructura:
+
+1. Filtro por tópicos calculados automáticamente usando el algoritmo _LDA_ (_Latent Dirichlet Allocation_).
+2. Búsqueda por palabras, frases o textos utilizando el algoritmo _TF-IDF_ (_Term Frequency - Inverse Document Frequency_) que está descrito en el primer entregable.
+3. Un botón que utilice la metodología del punto anterior para encontrar textos similares al que se está viendo.
+
+La idea es que los tópicos se complementen con la búsqueda para permitir la mayor precisión posible en los resultados. Si por alguna razón los tópicos automáticos no fueran satisfactorios, dado que se planea que sean por libro, se podría hacer una clasificación manual. A continuación describimos en un poco más de detalle los componentes.
+
+### Tópicos automáticos: LDA
+
+Actualmente estamos utilizando la técnica conocida cómo _LDA_ para extraer los tópicos o temas reelevantes de los textos. Creemos que es mejor hacer la extracción de los tópicos a nivel de libro ya que los libros se tratan de un tema en particular. También estamos investigando si es posible extraer subtópicos, es decir una especie de tópicos jerarquzados o bien si es posible mapear más de un tema a cada documento. 
+
+Se han realizado pruebas para ver la efectividad de esta técnica, cambiando el parámetro del número de tópicos, sin embargo este depende de cada texto, por lo que estamos tratando de inferir un parámetro adecuado. También se propone dentro del análisis utilizar el corpus sin _stemming_ ya que no se interpreta con facilidad el tema y consideramos que es mejor así.
+
+### Búsqueda inteligente: TF-IDF
+
+Como está explicado en el primer entregable, la técnica TF-IDF es un método para calcular similitudes entre textos. Dado un texto, busca los textos más parecidos en una colección de otros textos. Para hacerlo se basa en dos premisas básicas, que simplistamente son:
+
+1) Si dos textos tienen muchas ocurrencias de la misma palabra, significa que se se parecen.
+2) Si una palabra es poco común, entonces que dos textos la contengan aumenta su similitud
+más que si contienen palabras comunes.
+
+La idea es entonces utilizar la consulta como "texto" y ver cuáles de los de la colección son los más parecidos. El resultado es que si buscamos con algunas palabras, el algoritmo nos traerá las páginas más relevantes a esos términos.
+
+### Opción de "más como éste"
+
+Si se está viendo un texto, se puede utilizar como query para la búsqueda y así encontrar páginas similares fácilmente.
+
+### Notas
+
+Cabe mencionar que dado que los algoritmos propuestos son semisupervisados, no tiene mucho sentido quedarse con muestras de validación y prueba. Decimos que es semisupervisado porque aunque no hay una variable de respuesta, sí podemos evaluar el desempeño manualmente y podemos saber si la búsqueda fue exitosa o no. La etapa de validación en este caso tendrá que ser con criterio experto humano y ver si los resultados son satisfactorios o no.
+
+## Pipeline
+
+El pipeline completo del minado de textos quedaría entonces como sigue:
+
+1. __Procesamiento inicial__:
+    a. Dependiendo de dónde se almancenen los archivos, correr los scripts en `bash` correspondientes para extraer los textos. En el caso de que estén en la nube de Amazon, se puede decidir subirlos de vuelta.
+    b. Limpiar el `Corpus` inicial por _batches_ para evitar saturar la máquina utilizando el script de R.
+    c. Generar las matrices términos-documentos necesarias para los algoritmos (en R).
+    d. Generar los tópicos con LDA (en R).
+2. Se puede utilizar conjuntamente los tópicos y las matrices resultantes del paso (1) para __buscar__. El servidor necesita tener R para poder hacer búsquedas.
+3. Para __agregar libros nuevos__ a la colección se debe llevar a cabo los siguientes pasos:
+    a. Extraer los textos con el script más conveniente. Si es un libro puede ser con el básico; si es una colección local puede hacerse con el masivo, etc.
+    b. Limpiar el `Corpus` y las matrices de términos-documentos del nuevo conjunto de datos.
+    c. Combinar el `Corpus` y las matrices nuevas con los preexistentes para obtener la colección actualizada.
+
+## Apéndice: Errores, inconsistencias y retos
+
+### Lectura errónea de los textos
+
+Dado que lo único que hace `pdftotext` es extraer metadatos ya contenidos en los PDFs, sufre si el OCR llevado a cabo al escanear tiene errores. Por ejemplo, las fuentes de algunos libros son erróneamente interpretadas como que tienen espacios de más:
+
+* `C A T Á L O G O DE L A S O B R A S`
+* `P r l n t e d In S p a l n`
+
+En algunos libros los problemas son aislados, pero en otros hay páginas enteras con este problema. La dificultad radica en que corregir esto es un problema muy costoso computacionalmente. La única alternativa viable es ver si se pueden marcar de alguna forma los textos con problemas para al menos saber dónde se puede mejorar.
+
+### JPGs y PDFs en la carpeta de PDFs
+
+En algunos libros las carpetas de PDFs venían sucias y contenían también archivos `.jpg`, como en los siguientes casos:
+
+* fables_choisies_muses_en_vers_par_j._de_la_fontaif
+* fables_de_la_fontaine_2
+* novedades_ano_2
+
+### PDFs corruptos
+
+En algunos libros hay PDFs con nombres no estándar, como por ejemplo: (prefijo)_cpt_### o bien (prefijo)_por_### en lugar de prefijo_int_###). Los siguientes libros tienen este tipo de problemas:
+
+* cimientos_del_artista_dibujante_y_pintor
+* encuentro
+
+### Carpetas con nombres feos
+
+Utilizar caracteres especiales en los nombres de los archivos es problemático, por lo que se había acordado evitarlos en favor únicamente de los siguientes caracteres:
+
+* Números
+* Letras _minúsculas_, sin acentos de ningún tipo
+* Guiones bajos
+* Puntos y guiones (aunque hay que evitarlos preferentemente)
+
+Los siguientes libros no siguen estas reglas y por ello ocasionaron algunos problemas al extraer los textos.
+
+* america\`s_small_houses
+* ch.christofle_&_c
+* confesiones_de_jose_luis_cuevas_(repetido_fisicamente)
+* dada_&_surrealism
+* discovering_man\`s_past_in_the_americas
+* dolores_olmedo_patino_(1908-2002)
+* fotografia_y_pintura_¿dosmedios_diferentes¿
+* giovanni_bellini_by_philip_hendy_&_ludwing_goldscheider
+* grabados_en_madera__(repetido_fisicamente)
+* hieronymus_bosch_(repetida)
+* hogarth\`s_graphic_works
+* i\`art_totalitaire
+* jose_puche_alvarez_(1896-1979)_historia_de_un_compromiso
+* l\`arte_delle_pietre_dure
+* la_pintura_espanola_(repetida)
+* meubles_d\`art
+* mexico_en_el_siglo_xix_2012-11-08_18;57;14_(full)
+* mexico_en_el_siglo_xix_2012-11-08_19;37;00_(full)
+* notes_sur_l\`emission_en_france_des_monnaies_decimales_de_bronze_1852-1865
+* pintura_de_juan_o\`gorman_en_la_biblioteca_gertrudis_bocanegra_de_patzcuaro_michoacan
+* ward\`s_mexico_vol.ii
+

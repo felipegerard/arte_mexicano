@@ -230,11 +230,32 @@ for(i in 2:nblocks){
 tdm
 save(tdm, file = 'data/processed_data/tdm_completa.Rdata')
 
+load('data/temp/corp/corp_clean_1.Rdata')
+corp <- corp_clean_aux
+for(i in 2:nblocks){
+  print(i)
+  load(paste0('data/temp/corp/corp_clean_',i,'.Rdata'))
+  corp <- c(corp, corp_clean_aux)
+}
+corp
+save(corp, file = 'data/processed_data/corpus_completo.Rdata')
+
+
+
 # Para los primeros 321 libros (~ 600 MB) con 6 procesos se tarda 427 segs en cargar los datos, 1058 segs en limpiarlos y 124 segs en generar la matriz de metadatos, la TDM, etc.
 
 corp_clean
 corp_clean[[2]]$meta
 corp_clean[[2]]$content
+
+
+which(as.numeric(as.matrix(tdm['lruftusemittunten',])) > 0)
+which(as.numeric(as.matrix(tdm['pefuá',])) > 0)
+idx
+load('data/temp/corp/corp_clean_4.Rdata')
+62221-60926
+corp_clean_aux[[1295]]$content
+corp_clean_aux[[1295]]$meta
 
 system.time({
   docnames <- sapply(corp_clean, function(x) meta(x)$id)
