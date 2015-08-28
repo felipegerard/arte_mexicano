@@ -171,53 +171,64 @@ allowed_languages <- c('spanish','english',
 #                  pattern = '[0-9]{5}.txt',
 #                  recursive = T)
 system.time({
-  pages <- list.files('code/text-mining/test-by-page', #'code/pdftotext/txt/', #
+  pages <- list.files('data/txt/', # 'code/text-mining/test-by-page', #'code/pdftotext/txt/', #
                       pattern = '[0-9]{5}.txt',
                       full.names = T,
                       recursive = T) %>%
     grep(pattern = '/full/', invert = T, value = T)
-  pages1 <- pages[1:10000]
-  pages2 <- pages[10001:20000]
-  
+})
+
+#pages <- pages[1:10000]
+block_size <- 20000
+
+nblocks <- floor(length(pages)/block_size)
+idx <- floor(seq(1, length(pages), length.out = nblocks + 1))
+times <- character(nblocks)
+for(i in 1:(length(idx)-1)){
+  now <- as.character(Sys.time())
+  print(paste0(i, ' started at ', now))
+  times[i] <- now
+  ini <- idx[i] + as.numeric(i != 1)
+  fin <- idx[i+1]
+  pages1 <- pages[ini:fin]
   dir1 <- URISource(pages1)
-  dir2 <- URISource(pages2)
   corp_1 <- VCorpus(dir1, readerControl = list(reader=readPlain))
-  corp_2 <- VCorpus(dir2, readerControl = list(reader=readPlain))
-})
-system.time({
-  # Agregamos los nombres de los libros a los metadatos
-  # Asumimos que la estructura es <ruta a libros>/libro/txt/archivo.txt
-  
   meta(corp_1, 'origin', type='local') <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages1)
-  meta(corp_2, 'origin', type='local') <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages2)
-})
+  corp_clean_aux <- clean_corpus(corp_1,
+                                 mc.cores = 6,
+                                 stem = FALSE,
+                                 remove_stopwords = TRUE,
+                                 allowed_languages = allowed_languages)
+  tdm_aux <- TermDocumentMatrix(corp_clean_aux,
+                                control=list(wordLengths = c(min_wordlength, Inf),
+                                             weighting = function(x)
+                                               weightSMART(x, spec='ntc')))
+  save(tdm_aux, file = paste0('data/temp/tdm/tdm_',i,'.Rdata'))
+  save(corp_clean_aux, file = paste0('data/temp/corp/corp_clean_',i,'.Rdata'))
+  #     eval(parse(text = paste0('tdm_',i,' <- tdm_aux')))
+  #     eval(parse(text = paste0('save(tdm_',i,', file = "data/temp/tdm_',i,'")')))
+  #     eval(parse(text = paste0('rm(tdm_',i,')')))
+}
 
-system.time({
-  corp_clean1 <- clean_corpus(corp_1,
-                              mc.cores = 6,
-                              stem = FALSE,
-                              remove_stopwords = TRUE,
-                              allowed_languages = allowed_languages)
-  print('Terminado 1')
-  corp_clean2 <- clean_corpus(corp_2,
-                              mc.cores = 6,
-                              stem = FALSE,
-                              remove_stopwords = TRUE,
-                              allowed_languages = allowed_languages)
-})
+for(i in 1:nblocks){
+  print(i)
+  load(paste0('data/temp/corp/corp_clean_',i,'.Rdata'))
+  tdm_aux <- TermDocumentMatrix(corp_clean_aux,
+                                control=list(wordLengths = c(min_wordlength, Inf),
+                                             weighting = function(x)
+                                               weightSMART(x, spec='ntc')))
+  save(tdm_aux, file = paste0('data/temp/tdm/tdm_',i,'.Rdata'))
+}
 
-tdm_1 <- TermDocumentMatrix(corp_clean1,
-                            control=list(wordLengths = c(min_wordlength, Inf),
-                                         weighting = function(x)
-                                           weightSMART(x, spec='ntc')))
-tdm_2 <- TermDocumentMatrix(corp_clean2,
-                            control=list(wordLengths = c(min_wordlength, Inf),
-                                         weighting = function(x)
-                                           weightSMART(x, spec='ntc')))
-tdm_1
-tdm_2
-tdm <- c(tdm_1, tdm_2)
+load('data/temp/tdm/tdm_1.Rdata')
+tdm <- tdm_aux
+for(i in 2:nblocks){
+  print(i)
+  load(paste0('data/temp/tdm/tdm_',i,'.Rdata'))
+  tdm <- c(tdm, tdm_aux)
+}
 tdm
+save(tdm, file = 'data/processed_data/tdm_completa.Rdata')
 
 # Para los primeros 321 libros (~ 600 MB) con 6 procesos se tarda 427 segs en cargar los datos, 1058 segs en limpiarlos y 124 segs en generar la matriz de metadatos, la TDM, etc.
 
