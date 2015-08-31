@@ -171,7 +171,6 @@ allowed_languages <- c('spanish','english',
 clean_book_corpus <- function(dirs, mc.cores = 4){
   corp <- VCorpus(dirs, readerControl = list(reader=readPlain))
   ids <- meta(corp, 'id', type='local')
-  mc.cores <- 4
   corp <- tm_map(corp, mc.cores = mc.cores, function(x) paste(x, collapse=' '))
   corp <- tm_map(corp, mc.cores = mc.cores, removePunctuation)
   corp <- tm_map(corp, mc.cores = mc.cores, gsub, pattern='\\f', replacement='')
@@ -184,7 +183,7 @@ clean_book_corpus <- function(dirs, mc.cores = 4){
     #     x <- removeWords(x, stopwords(lang))
     #     x <- stemDocument(x, lang)
     #   }
-    cat(paste0(lang, '\n'), file = 'data/logs/log1.txt', append = T)
+#     cat(paste0(lang, '\n'), file = 'data/logs/log1.txt', append = T)
     return(PlainTextDocument(x, language = lang))
   })
   corp <- tm_map(corp, mc.cores = mc.cores, stripWhitespace)
@@ -199,7 +198,10 @@ clean_book_corpus <- function(dirs, mc.cores = 4){
 
 ## OJO: Falta detectar el lenguaje para quitar stopwords!!!!
 
-dirs <- list.files('data/full-txt/', full.names = T)
+blacklist <- c('concordantiae.txt')
+
+dirs <- list.files('data/full-txt', full.names = T) %>%
+  grep(pattern = blacklist, invert = T, value = T)
 
 block_size <- 30
 
@@ -216,17 +218,19 @@ for(i in 1:(length(idx)-1)){
   uri1 <- URISource(dirs1)
   corp_partial <- clean_book_corpus(uri1, mc.cores = 4)  
   save(corp_partial, file = paste0('data/temp/corp-book/corp_book_',i,'.Rdata'))
+  rm(corp_partial)
+  gc()
 }
 
-load('data/temp/corp/corp_clean_1.Rdata')
-corp <- corp_clean_aux
+load('data/temp/corp-book/corp_book_1.Rdata')
+corp <- corp_partial
 for(i in 2:nblocks){
   print(i)
-  load(paste0('data/temp/corp/corp_clean_',i,'.Rdata'))
-  corp <- c(corp, corp_clean_aux)
+  load(paste0('data/temp/corp-book/corp_book_',i,'.Rdata'))
+  corp <- c(corp, corp_partial)
 }
 corp
-save(corp, file = 'data/processed_data/corpus_completo.Rdata')
+save(corp, file = 'data/processed_data/corpus_books_completo.Rdata')
 
 
 
