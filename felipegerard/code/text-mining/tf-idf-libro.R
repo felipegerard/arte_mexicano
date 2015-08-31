@@ -1,6 +1,6 @@
 library(dplyr)
 library(tm)
-library(Rstem)
+# library(Rstem)
 library(parallel)
 library(Matrix)
 library(textcat)
@@ -19,53 +19,6 @@ lh <- function(l){
     object = l,
     mb = round((sapply(l, function(x) pryr::object_size(eval(parse(text = x)))))/2^20, 2)
   )
-}
-
-# Limpieza
-clean_corpus <- function(corp,
-                         stem = FALSE,
-                         remove_stopwords = TRUE,
-                         null_text = 'TEXTOBASURA',
-                         mc.cores = 4,
-                         lang = NULL,
-                         allowed_languages = c('spanish','english',
-                                               'french','german',
-                                               'portugese')){
-  corp <- tm_map(mc.cores = mc.cores,
-                 corp,  
-                 function(x){
-                   meta <- x$meta
-                   x <- gsub('\\f', '', x$content)
-                   x <- paste0(x, collapse = ' ')
-                   x <- gsub('[0-9]{1,3}', '', x)
-                   x <- tolower(x)
-                   x <- gsub('[^ a-záéíóúüñ0-9]', '', x)
-                   x <- gsub(' +', ' ', x)
-                   if(is.null(lang)) lang <- textcat(x)
-                   #cat(lang)
-                   lang_cond <- !is.na(lang) && (lang %in% allowed_languages)
-                   if(lang_cond && remove_stopwords){
-                     x <- removeWords(x, stopwords(lang))
-                   }
-                   if(lang_cond && stem){
-                     x <- strsplit(x, " ")[[1]]
-                     x <- wordStem(x, language=lang)
-                     x <- paste(x, collapse=" ")
-                   }
-                   x <- gsub(' +', ' ', x)
-                   if(nchar(x) < 3 || !grepl('[^ ]{2}', x)) x <- null_text
-                   #list(content=x, meta=meta)
-                   PlainTextDocument(x = x,
-                                     author = meta$author,
-                                     datetimestamp = meta$datetimestamp,
-                                     description = meta$description,
-                                     heading = meta$heading,
-                                     id = meta$id,
-                                     language = ifelse(lang_cond, lang, ''),
-                                     origin = meta$origin)
-                 })
-  corp
-  #Corpus(VectorSource(corp))
 }
 
 # Calculo de scores
@@ -162,7 +115,7 @@ max_wordlength <- 25
 min_docs <- 2
 allowed_languages <- c('spanish','english',
                        'french','german',
-                       'portugese')
+                       'portugese', 'italian','catalan')
 
 
 
@@ -197,7 +150,16 @@ clean_book_corpus <- function(dirs, mc.cores = 4){
 ## OJO: Falta detectar el lenguaje para quitar stopwords!!!!
 
 blacklist <- c('concordantiae.txt',
-               'universidad_mensual_de_cultura_popular_nov_1936_n.10_t.2.txt')
+               'universidad_mensual_de_cultura_popular_nov_1936_n.10_t.2.txt',
+               'mockobcknnkpemab.txt',
+               'theatre_des_martyrs.txt',
+               'cien_dibujos_de_diego_rivera.txt',
+               'rincones_de_mexico.txt',
+               'elementos_de_composicion_musical.txt',
+               'enciclopedia_metodica_estampas__tomo_1.txt',
+               'la_historia_danzante_tomo_ii_mexico_1874.txt',
+               'baron_van_munch-hausen.txt'
+               )
 
 dirs <- list.files('data/full-txt', full.names = T) %>%
   grep(pattern = blacklist, invert = T, value = T)
@@ -229,26 +191,41 @@ for(i in 2:nblocks){
   load(paste0('data/temp/corp-book/corp_book_',i,'.Rdata'))
   corp <- c(corp, corp_partial)
 }
+
+# Quitamos los documentos con lenguajes no permitidos
+corp <- tm_filter(corp, function(x, langs){
+  meta(x)$language %in% langs
+}, langs=allowed_languages)
+
+# Salvamos el corpus
 corp
-save(corp, file = 'data/processed_data/corpus_books_completo.Rdata')
+save(corp, file = 'data/corpora/corpus_books_completo.Rdata')
 
+# Corpus + stemming - stopwords
 
-# Corpus + stemming
-
-corp2 <- tm_map(corp, function(x, allowed_languages){
+corp_stem_stopw <- tm_map(corp, function(x, allowed_languages){
   meta <- meta(x)
-  if(meta$language %in% allowed_languages)
+  if(meta$language %in% allowed_languages){
     x <- stemDocument(x, language = meta$language)
+    x <- removeWords(x, words = stopwords(meta$language))
+  }
   return(x)
-  #   x <- removeWords(x, words = stopwords(meta$language))
 }, allowed_languages=allowed_languages)
 
-save(corp2, file = 'data/processed_data/corpus_books_completo_stemming.Rdata')
+save(corp_stem_stopw, file = 'data/processed_data/corpus_books_completo_stem_stopw.Rdata')
+
+# - documentos con lenguajes no permitidos
+
+corp_stem_clean <- tm_filter(corp2, function(x, langs, blk){
+  (meta(x)$language %in% langs) && !(meta(x)$id %in% blk)
+}, langs=allowed_languages, blk=blacklist)
+
+save(corp_stem_clean, file = 'data/processed_data/corpus_books_stem_clean.Rdata')
 
 # TDM ---------------------------------------------------------------------
 
 # Sin stemming
-load('data/processed_data/corpus_books_completo.Rdata')
+load('data/corpora/corpus_books_completo.Rdata')
 tdm_tf_nostem <- TermDocumentMatrix(corp,
                                     control = list(
                                       weighting = weightTf,
@@ -274,7 +251,7 @@ gc()
 
 # Con stemming
 
-load('data/processed_data/corpus_books_completo_stemming.Rdata')
+load('data/corpora/corpus_books_completo_stemming.Rdata')
 
 tdm_tf_stem <- TermDocumentMatrix(corp2,
                                   control = list(
@@ -315,55 +292,8 @@ save(tdm_tfidf_stem, file = 'data/tdms/tdm_books_tfidf_stem.Rdata')
 
 
 
-system.time({
-  pages <- list.files('data/txt/', # 'code/text-mining/test-by-page', #'code/pdftotext/txt/', #
-                      pattern = '[0-9]{5}.txt',
-                      full.names = T,
-                      recursive = T) %>%
-    grep(pattern = '/full/', invert = T, value = T)
-})
+# No borrar ---------------------------------------------------------------
 
-#pages <- pages[1:10000]
-block_size <- 20000
-
-nblocks <- floor(length(pages)/block_size)
-idx <- floor(seq(1, length(pages), length.out = nblocks + 1))
-times <- character(nblocks)
-for(i in 1:(length(idx)-1)){
-  now <- as.character(Sys.time())
-  print(paste0(i, ' started at ', now))
-  times[i] <- now
-  ini <- idx[i] + as.numeric(i != 1)
-  fin <- idx[i+1]
-  pages1 <- pages[ini:fin]
-  dir1 <- URISource(pages1)
-  corp_1 <- VCorpus(dir1, readerControl = list(reader=readPlain))
-  meta(corp_1, 'origin', type='local') <- gsub('.*/([^/]+)/txt/[^/]+', '\\1', pages1)
-  corp_clean_aux <- clean_corpus(corp_1,
-                                 mc.cores = 6,
-                                 stem = FALSE,
-                                 remove_stopwords = TRUE,
-                                 allowed_languages = allowed_languages)
-  tdm_aux <- TermDocumentMatrix(corp_clean_aux,
-                                control=list(wordLengths = c(min_wordlength, Inf),
-                                             weighting = function(x)
-                                               weightSMART(x, spec='ntc')))
-  save(tdm_aux, file = paste0('data/temp/tdm/tdm_',i,'.Rdata'))
-  save(corp_clean_aux, file = paste0('data/temp/corp/corp_clean_',i,'.Rdata'))
-  #     eval(parse(text = paste0('tdm_',i,' <- tdm_aux')))
-  #     eval(parse(text = paste0('save(tdm_',i,', file = "data/temp/tdm_',i,'")')))
-  #     eval(parse(text = paste0('rm(tdm_',i,')')))
-}
-
-for(i in 1:nblocks){
-  print(i)
-  load(paste0('data/temp/corp/corp_clean_',i,'.Rdata'))
-  tdm_aux <- TermDocumentMatrix(corp_clean_aux,
-                                control=list(wordLengths = c(min_wordlength, Inf),
-                                             weighting = function(x)
-                                               weightSMART(x, spec='ntc')))
-  save(tdm_aux, file = paste0('data/temp/tdm/tdm_',i,'.Rdata'))
-}
 
 load('data/temp/tdm/tdm_1.Rdata')
 tdm <- tdm_aux
