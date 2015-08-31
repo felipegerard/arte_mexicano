@@ -159,6 +159,7 @@ print_results <- function(out, corp, mat, idx)
 
 min_wordlength <- 2
 max_wordlength <- 25
+min_docs <- 2
 allowed_languages <- c('spanish','english',
                        'french','german',
                        'portugese')
@@ -220,6 +221,7 @@ for(i in 1:(length(idx)-1)){
   gc()
 }
 
+# Pegamos los corpus chicos
 load('data/temp/corp-book/corp_book_1.Rdata')
 corp <- corp_partial
 for(i in 2:nblocks){
@@ -250,23 +252,23 @@ load('data/processed_data/corpus_books_completo.Rdata')
 tdm_tf_nostem <- TermDocumentMatrix(corp,
                                     control = list(
                                       weighting = weightTf,
-                                      bounds = list(global = c(2, Inf)),
+                                      bounds = list(global = c(min_docs, Inf)),
                                       wordLengths = c(min_wordlength, max_wordlength)
                                     ))
 tdm_tf_nostem
-save(tdm_tf_nostem, 'data/tdms/tdm_books_tf_nostem.Rdata')
+save(tdm_tf_nostem, file = 'data/tdms/tdm_books_tf_nostem.Rdata')
 
 ###
 
 tdm_tfidf_nostem <- TermDocumentMatrix(corp,
                                        control = list(
                                          weighting = weightTfIdf,
-                                         bounds = list(global = c(2, Inf)),
+                                         bounds = list(global = c(min_docs, Inf)),
                                          wordLengths = c(min_wordlength, max_wordlength)
                                        ))
 
 tdm_tfidf_nostem
-save(tdm_tdidf_nostem, 'data/tdms/tdm_books_tfidf_nostem.Rdata')
+save(tdm_tfidf_nostem, file = 'data/tdms/tdm_books_tfidf_nostem.Rdata')
 rm(corp, tdm_tf_nostem, tdm_tfidf_nostem)
 gc()
 
@@ -277,28 +279,21 @@ load('data/processed_data/corpus_books_completo_stemming.Rdata')
 tdm_tf_stem <- TermDocumentMatrix(corp2,
                                   control = list(
                                     weighting = weightTf,
-                                    bounds = list(global = c(2, Inf)),
+                                    bounds = list(global = c(min_docs, Inf)),
                                     wordLengths = c(min_wordlength, max_wordlength)
                                   ))
 tdm_tf_stem
-save(tdm_tf_stem, 'data/tdms/tdm_books_tf_stem.Rdata')
+save(tdm_tf_stem, file = 'data/tdms/tdm_books_tf_stem.Rdata')
 
 tdm_tfidf_stem <- TermDocumentMatrix(corp2,
                                      control = list(
                                        weighting = weightTfIdf,
-                                       bounds = list(global = c(2, Inf)),
+                                       bounds = list(global = c(min_docs, Inf)),
                                        wordLengths = c(min_wordlength, max_wordlength)
                                      ))
 
 tdm_tfidf_stem
-save(tdm_tfidf_stem, 'data/tdms/tdm_books_tfidf_stem.Rdata')
-
-###
-
-feos <- tm_filter(corp2, grepl, pattern='abandonarpermaneciosu')
-meta(feos, 'id', type='local')
-feos[[1]]
-length(tm::findFreqTerms(tdm_stem, highfreq = Inf))
+save(tdm_tfidf_stem, file = 'data/tdms/tdm_books_tfidf_stem.Rdata')
 
 
 
