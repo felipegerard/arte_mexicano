@@ -158,6 +158,7 @@ print_results <- function(out, corp, mat, idx)
 # Control -----------------------------------------------------------------
 
 min_wordlength <- 2
+max_wordlength <- 25
 allowed_languages <- c('spanish','english',
                        'french','german',
                        'portugese')
@@ -172,18 +173,14 @@ clean_book_corpus <- function(dirs, mc.cores = 4){
   corp <- VCorpus(dirs, readerControl = list(reader=readPlain))
   ids <- meta(corp, 'id', type='local')
   corp <- tm_map(corp, mc.cores = mc.cores, function(x) paste(x, collapse=' '))
-  corp <- tm_map(corp, mc.cores = mc.cores, removePunctuation)
-  corp <- tm_map(corp, mc.cores = mc.cores, gsub, pattern='\\f', replacement='')
-  corp <- tm_map(corp, mc.cores = mc.cores, gsub, pattern='[0-9]{1,3}', replacement='')
+#   corp <- tm_map(corp, mc.cores = mc.cores, removePunctuation)
+  corp <- tm_map(corp, mc.cores = mc.cores, gsub,
+                 pattern='\\f|[0-9]{1,3}| . ', replacement='')
   corp <- tm_map(corp, mc.cores = mc.cores, tolower)
-  corp <- tm_map(corp, mc.cores = mc.cores, gsub, pattern=' . ', replacement='')
+  corp <- tm_map(corp, mc.cores = mc.cores, gsub
+                 pattern = '[^ 0-9a-záéíóúäëïöüñ]', replacement = '')
   corp <- tm_map(corp, mc.cores = mc.cores, function(x){
     lang <- textcat(x)
-    #   if(lang %in% allowed_languages){
-    #     x <- removeWords(x, stopwords(lang))
-    #     x <- stemDocument(x, lang)
-    #   }
-#     cat(paste0(lang, '\n'), file = 'data/logs/log1.txt', append = T)
     return(PlainTextDocument(x, language = lang))
   })
   corp <- tm_map(corp, mc.cores = mc.cores, stripWhitespace)
@@ -198,7 +195,8 @@ clean_book_corpus <- function(dirs, mc.cores = 4){
 
 ## OJO: Falta detectar el lenguaje para quitar stopwords!!!!
 
-blacklist <- c('concordantiae.txt')
+blacklist <- c('concordantiae.txt',
+               'universidad_mensual_de_cultura_popular_nov_1936_n.10_t.2.txt')
 
 dirs <- list.files('data/full-txt', full.names = T) %>%
   grep(pattern = blacklist, invert = T, value = T)
@@ -233,57 +231,74 @@ corp
 save(corp, file = 'data/processed_data/corpus_books_completo.Rdata')
 
 
+# Corpus + stemming
 
+corp2 <- tm_map(corp, function(x, allowed_languages){
+  meta <- meta(x)
+  if(meta$language %in% allowed_languages)
+    x <- stemDocument(x, language = meta$language)
+  return(x)
+  #   x <- removeWords(x, words = stopwords(meta$language))
+}, allowed_languages=allowed_languages)
 
+save(corp2, file = 'data/processed_data/corpus_books_completo_stemming.Rdata')
 
+# TDM ---------------------------------------------------------------------
 
+# Sin stemming
+load('data/processed_data/corpus_books_completo.Rdata')
+tdm_tf_nostem <- TermDocumentMatrix(corp,
+                                    control = list(
+                                      weighting = weightTf,
+                                      bounds = list(global = c(2, Inf)),
+                                      wordLengths = c(min_wordlength, max_wordlength)
+                                    ))
+tdm_tf_nostem
+save(tdm_tf_nostem, 'data/tdms/tdm_books_tf_nostem.Rdata')
 
+###
 
+tdm_tfidf_nostem <- TermDocumentMatrix(corp,
+                                       control = list(
+                                         weighting = weightTfIdf,
+                                         bounds = list(global = c(2, Inf)),
+                                         wordLengths = c(min_wordlength, max_wordlength)
+                                       ))
 
+tdm_tfidf_nostem
+save(tdm_tdidf_nostem, 'data/tdms/tdm_books_tfidf_nostem.Rdata')
+rm(corp, tdm_tf_nostem, tdm_tfidf_nostem)
+gc()
 
+# Con stemming
 
+load('data/processed_data/corpus_books_completo_stemming.Rdata')
 
+tdm_tf_stem <- TermDocumentMatrix(corp2,
+                                  control = list(
+                                    weighting = weightTf,
+                                    bounds = list(global = c(2, Inf)),
+                                    wordLengths = c(min_wordlength, max_wordlength)
+                                  ))
+tdm_tf_stem
+save(tdm_tf_stem, 'data/tdms/tdm_books_tf_stem.Rdata')
 
+tdm_tfidf_stem <- TermDocumentMatrix(corp2,
+                                     control = list(
+                                       weighting = weightTfIdf,
+                                       bounds = list(global = c(2, Inf)),
+                                       wordLengths = c(min_wordlength, max_wordlength)
+                                     ))
 
+tdm_tfidf_stem
+save(tdm_tfidf_stem, 'data/tdms/tdm_books_tfidf_stem.Rdata')
 
+###
 
-
-
-
-
-
-
-corp2[[1]]$meta
-corp2[[1]]$content
-
-
-# Matriz Terminos-Documentos
-tdm1 <- TermDocumentMatrix(corp2,
-                           control = list(
-                             weighting = weightTfIdf,
-                             bounds = list(global = c(1, Inf))
-                           ))
-tdm2 <- TermDocumentMatrix(corp2,
-                           control = list(
-                             weighting = weightTfIdf,
-                             bounds = list(global = c(2, Inf))
-                           ))
-tdm3 <- TermDocumentMatrix(corp2,
-                           control = list(
-                             weighting = weightTfIdf,
-                             bounds = list(global = c(3, Inf))
-                           ))
-tdm3.2 <- TermDocumentMatrix(corp2,
-                           control = list(
-                             weighting = weightTfIdf,
-                             bounds = list(global = c(3, Inf)),
-                             stemming = TRUE
-                           ))
-tdm1
-tdm2
-tdm3
-tdm3.2
-
+feos <- tm_filter(corp2, grepl, pattern='abandonarpermaneciosu')
+meta(feos, 'id', type='local')
+feos[[1]]
+length(tm::findFreqTerms(tdm_stem, highfreq = Inf))
 
 
 
