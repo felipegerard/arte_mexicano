@@ -115,7 +115,7 @@ max_wordlength <- 25
 min_docs <- 2
 allowed_languages <- c('spanish','english',
                        'french','german',
-                       'portugese', 'italian','catalan')
+                       'portuguese', 'italian')
 
 
 
@@ -124,14 +124,15 @@ allowed_languages <- c('spanish','english',
 # Limpiar textos (libros)
 
 clean_book_corpus <- function(dirs, mc.cores = 4){
+  dirs <- URISource(dirs)
   corp <- VCorpus(dirs, readerControl = list(reader=readPlain))
   ids <- meta(corp, 'id', type='local')
   corp <- tm_map(corp, mc.cores = mc.cores, function(x) paste(x, collapse=' '))
 #   corp <- tm_map(corp, mc.cores = mc.cores, removePunctuation)
   corp <- tm_map(corp, mc.cores = mc.cores, gsub,
-                 pattern='\\f|[0-9]{1,3}| . ', replacement='')
+                 pattern='\\f|[0-9]{1,3}| . ', replacement=' ')
   corp <- tm_map(corp, mc.cores = mc.cores, tolower)
-  corp <- tm_map(corp, mc.cores = mc.cores, gsub
+  corp <- tm_map(corp, mc.cores = mc.cores, gsub,
                  pattern = '[^ 0-9a-záéíóúäëïöüñ]', replacement = '')
   corp <- tm_map(corp, mc.cores = mc.cores, function(x){
     lang <- textcat(x)
@@ -161,6 +162,7 @@ blacklist <- c('concordantiae.txt',
                'baron_van_munch-hausen.txt'
                )
 
+# Lista de archivos - lista negra
 dirs <- list.files('data/full-txt', full.names = T) %>%
   grep(pattern = blacklist, invert = T, value = T)
 
@@ -201,30 +203,22 @@ corp <- tm_filter(corp, function(x, langs){
 corp
 save(corp, file = 'data/corpora/corpus_books_completo.Rdata')
 
-# Corpus + stemming - stopwords
-
-corp_stem_stopw <- tm_map(corp, function(x, allowed_languages){
+# Corpus + stemming
+corp_stem <- tm_map(corp, function(x, allowed_languages){
   meta <- meta(x)
-  if(meta$language %in% allowed_languages){
+  if(meta$language %in% allowed_languages){ # Redundante pero por seguridad
     x <- stemDocument(x, language = meta$language)
-    x <- removeWords(x, words = stopwords(meta$language))
+#     x <- removeWords(x, words = stopwords(meta$language))
   }
   return(x)
 }, allowed_languages=allowed_languages)
 
-save(corp_stem_stopw, file = 'data/processed_data/corpus_books_completo_stem_stopw.Rdata')
+save(corp_stem, file = 'data/corpora/corpus_books_completo_stem.Rdata')
 
-# - documentos con lenguajes no permitidos
-
-corp_stem_clean <- tm_filter(corp2, function(x, langs, blk){
-  (meta(x)$language %in% langs) && !(meta(x)$id %in% blk)
-}, langs=allowed_languages, blk=blacklist)
-
-save(corp_stem_clean, file = 'data/processed_data/corpus_books_stem_clean.Rdata')
 
 # TDM ---------------------------------------------------------------------
 
-# Sin stemming
+# De frecuencias sin stemming para LDA
 load('data/corpora/corpus_books_completo.Rdata')
 tdm_tf_nostem <- TermDocumentMatrix(corp,
                                     control = list(
@@ -235,17 +229,6 @@ tdm_tf_nostem <- TermDocumentMatrix(corp,
 tdm_tf_nostem
 save(tdm_tf_nostem, file = 'data/tdms/tdm_books_tf_nostem.Rdata')
 
-###
-
-tdm_tfidf_nostem <- TermDocumentMatrix(corp,
-                                       control = list(
-                                         weighting = weightTfIdf,
-                                         bounds = list(global = c(min_docs, Inf)),
-                                         wordLengths = c(min_wordlength, max_wordlength)
-                                       ))
-
-tdm_tfidf_nostem
-save(tdm_tfidf_nostem, file = 'data/tdms/tdm_books_tfidf_nostem.Rdata')
 rm(corp, tdm_tf_nostem, tdm_tfidf_nostem)
 gc()
 
@@ -253,7 +236,7 @@ gc()
 
 load('data/corpora/corpus_books_completo_stemming.Rdata')
 
-tdm_tf_stem <- TermDocumentMatrix(corp2,
+tdm_tf_stem <- TermDocumentMatrix(corp_stem,
                                   control = list(
                                     weighting = weightTf,
                                     bounds = list(global = c(min_docs, Inf)),
@@ -262,7 +245,7 @@ tdm_tf_stem <- TermDocumentMatrix(corp2,
 tdm_tf_stem
 save(tdm_tf_stem, file = 'data/tdms/tdm_books_tf_stem.Rdata')
 
-tdm_tfidf_stem <- TermDocumentMatrix(corp2,
+tdm_tfidf_stem <- TermDocumentMatrix(corp_stem,
                                      control = list(
                                        weighting = weightTfIdf,
                                        bounds = list(global = c(min_docs, Inf)),
