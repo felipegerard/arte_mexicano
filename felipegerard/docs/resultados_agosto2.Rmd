@@ -5,6 +5,16 @@ date: "18 de agosto de 2015"
 output: html_document
 ---
 
+```{r, echo=FALSE}
+library(dplyr)
+library(tm)
+# library(Rstem)
+library(parallel)
+library(Matrix)
+library(textcat)
+library(slam)
+```
+
 ## Resumen
 
 ### Estructura de almacenamiento de datos
@@ -22,17 +32,6 @@ Los archivos originales vienen agrupados por libro y por tipo de datos. Hay una 
             * Full
                 + Un solo archivo `.txt` con el mismo nombre del libro
 
-### Estadísticas básicas
-
-- #FALTA#
-Número de libros extraidos:
-Número de textos totales: 365551
-Promedio de páginas por libro:
-Número de términos en el diccionario (sin stemming): 5704730
-Número de términos en el diccionario ( stemming): 
-Tamaño de los archivos Rdata
-Etc
-Etc
 
 ## ELT
 
@@ -57,26 +56,139 @@ Dado que los PDFs de la colección ocupan aproximadamente 400 GB, puede resultar
 La limpieza se puede llevar a cabo en `bash`. Sin embargo, hay algunas operaciones más sofisticadas que queremos hacer que sólo están en R. Por eso optamos por hacer la limpieza en R siguiendo los siguientes pasos:
 
 1. [L] Cargamos los datos a un `Corpus` del paquete `tm` (Text Mining).
-    * Podemos tomar que cada página o que cada libro correspondan a un documento, según la capacidad de procesamiento y lo que queramos hacer.
-    * Llenamos las partes relevantes de los metadatos. En el caso de tener un documento por libro, se tiene el nombre del libro y el idioma. Cuando es por página, guardamos el nombre del archivo `.txt` del que proviene la página, el libro en el que está y el lenguaje.
-    * Detectamos los lenguajes con el paquete `textcat`. Para los textos sucios no es muy preciso, pero por el momento no tenemos una mejor alternativa.
+    - Cada libro corresponde a un documento.
+	+ Hay una lista negra de libros cuyos `.txt` están demasiado mal. Dejarlos llena el diccionario de términos conocidos de basura.
+    - Detectamos el idioma del libro con el paquete `textcat`.
+	+ Sólo permitimos español, inglés, francés, alemán, portugués e italiano.
+	+ Hay pocos libros en latín y catalán que ignoramos al menos por ahora. Hacerlo disminuye mucho el problema computacional.
+    - Llenamos las partes relevantes de los metadatos, que en este caso son el nombre del libro y el idioma.
 2. [T] Transformamos los datos a un formato apropiado para la minería:
     - Limpiamos los datos:
         + Quitamos caracteres especiales, puntuación, exceso de espacios, etc.
-        + Quitamos "stopwords".
         + Hacemos _stemming_: tomamos únicamente las raíces de las palabras pero ignoramos las terminaciones. Los experimentos sugieren que tal vez convenga _no_ hacer stemming, aunque esto representa un reto técnico (ver sección de Estadísticas abajo).
     - Generamos un Corpus limpio con metadatos.
-    - Finalmente, generamos la matriz de términos-documentos, con pesos dados según la aplicación:
-        + Para tópicos usamos frecuencias (TF) y hacemos el análisis _por libro_.
-        + Para búsquedas usamos TF-IDF y hacemos el análisis _por página_.
+    - Finalmente, generamos la matriz de términos-documentos
+	+ Quitamos las palabras que no aparezcan al menos en 2 documentos.
+	    * Así evitamos que las palabras mal leídas se queden en el diccionario.
+	+ En este punto podemos quitar "stopwords", es decir palabras inconsecuentes como "el", "la", etc.
+	+ Los pesos están dados según la aplicación:
+	    * Para tópicos usamos frecuencias (TF) y hacemos el análisis _por libro_.
+	    * Para búsquedas usamos TF-IDF y hacemos el análisis _por página_.
 
 Cabe mencionar que como R hace todo en memoria, hacer el proceso anterior para la colección entera de textos es demasiado pesado. Sin embargo, dado que se puede procesar los textos independientemente unos de otros, optamos por procesarlos en _batches_ de un tamaño fijo (digamos 20,000 textos en el caso de que sea por página) y guardar tanto los `Corpus` limpios como sus matrices términos-documentos asociadas en archivos `.Rdata`. La ventaja de esto es que `tm` tiene manera de concatenar los `Corpus` y las matrices, de modo que se puede procesar por partes y luego juntar la información procesada sin problemas.
 
 Dado que la matriz de términos documentos es toda la información que necesitan los algoritmos para correr, bastará subir la matriz a la memoria para hacer recomendaciones.
 
-### Estadísticas y notas
+### Ejemplo de limpieza
 
-El corpus de los libros de esta colección, entendido como un texto por página, consta de #FALTA# textos y el archivo `.Rdata` en el que lo guardamos pesa aproximadamente 225 MB.
+El texto original se ve así (extracto):
+
+```{r, echo=FALSE}
+ej <- VCorpus(URISource('data/full-txt/12_artistas_donde_se_origina_el_arte_en_el_aire.txt'))[[1]]$content %>%
+  .[1480:1500] %>%
+  gsub(pattern='\\f', replacement='\\\\f')
+cat(ej, sep = '\n')
+```
+
+Después de haberle quitado la puntuación y las mayúsculas:
+
+```{r, echo=FALSE}
+load('data/corpora/corpus_books_completo.Rdata')
+#regexpr('Actualmente es becario de Jóvenes Creadores', corp[[2]]$content, ignore.case = T)
+substr(corp[[2]]$content, 78775, (78775+1140))
+```
+
+
+### Estadísticas básicas
+
+A continuación presentamos algunos datos básicos sobre la colección.
+
+```{r, echo=FALSE}
+load('data/tdms/tdm_books_tf_stem.Rdata')
+```
+
+Número de documentos: `r tdm_tf_stem$ncol`
+Número de términos: `r tdm_tf_stem$nrow`
+Tamaño del `Corpus` (archivo `.Rdata`): ~ 220 MB
+Tamaño de la matriz términos-documentos (archivo `.Rdata`): ~ 40 MB
+Longitud del término más largo: `r tdm_tf_stem$dimnames$Terms %>% nchar %>% max`
+Mínimo número de documentos en los que tiene que aparecer un término para ser tomado en cuenta: 2
+
+A continuación presentamos un histograma del número de palabras por libro:
+
+```{r, echo=FALSE}
+library(ggplot2)
+doc_freqs <- col_sums(tdm_tf_stem, na.rm = T)
+names(doc_freqs) <- gsub('list\\("(.+)"\\)','\\1', names(doc_freqs))
+qplot(doc_freqs) + labs(x='Palabras', y='Documentos', title='Histograma del número de palabras en la colección limpia')
+```
+
+Y ahora una tabla con el número de documentos en cada idioma. Cabe notar que aquí ya sólo están los documentos en los idiomas permitidos y que no están en la lista negra.
+
+```{r, echo=FALSE}
+#rm(tdm_tf_stem)
+#gc()
+load('data/corpora/corpus_books_completo_stem.Rdata')
+meta <- meta(corp_stem, type='local') %>%
+  lapply(function(x) data.frame(id=x$id[[1]], lang=x$language)) %>%
+  rbind_all
+meta$words <- doc_freqs
+
+library(knitr)
+langs <- table(meta$lang) %>%
+  as.data.frame %>%
+  rename(Idioma=Var1, Documentos=Freq) 
+langs$Idioma <- factor(langs$Idioma, levels = levels(langs$Idioma)[order(langs$Documentos, decreasing = T)])
+langs <- langs %>%
+  arrange(desc(Documentos))
+
+qplot(Idioma, Documentos, data=langs, geom='bar', stat='identity')
+
+langs %>%
+  kable
+
+```
+
+
+### Análisis de palabras
+```{r, echo=FALSE}
+allowed_languages <- c('spanish','english',
+                       'french','german',
+                       'portuguese', 'italian')
+all_stopwords <- sapply(allowed_languages, stopwords) %>% unlist
+word_freqs <- row_sums(tdm_tf_stem, na.rm = T)
+words <- data.frame(word=names(word_freqs),
+                    freq=word_freqs,
+                    row.names = NULL) %>%
+  filter(!(word %in% all_stopwords)) %>%
+  arrange(desc(freq))
+```
+
+Ahora haremos un breve análisis de las palabras más y menos frecuentes. Como aplicamos _stemming_ en realidad lo que estamos analizando es cuáles son las raíces más comunes. Las más frecuentes son:
+
+```{r, echo=FALSE}
+words %>%
+  head(15) %>%
+  kable
+library(wordcloud)
+set.seed(1234)
+wordcloud(words$word, words$freq, min.freq = 40000)
+```
+
+La gran mayoría de las palabras aparecen menos de 50 veces:
+
+```{r, echo=FALSE}
+words %>%
+  filter(freq < 250) %>%
+  ggplot(aes(freq)) +
+    geom_bar(binwidth = 20) +
+    labs(x='Frecuencia de la palabra', y='', title='Histograma de las frecuencias de las palabras')
+```
+
+
+
+
+### Notas
 
 Hemos tenido algo de problemas con la decisión de si debemos hacer stemming o no. La ventaja del stemming es que permite que las búsquedas sean más difusas, es decir, que tome como iguales a las palabras con las mismas raíces. Sin embargo, esto viene con dos problemas. El primero es que hay palabras con significados distintos pero raíces iguales, y el segundo es que al quitar las raíces, a veces se pierden partes distintivas del lenguaje de la búsqueda. Ambos problemas generan falsos positivos. El tema es que si no se hace stemming, hay otras complicaciones. Por ejemplo, la búsqueda es tan exacta que puede parecer tonta (por ejemplo no considera como iguales a una palabra y su plural). Otro problema es que dado que se manejan varios lenguajes y todos contribuyen al diccionario de palabras conocidas, éste puede hacerse enorme (alrededor de #FALTA# 5 millones de palabras) y resultar demasiado pesado para un sistema que corra en vivo. 
 
