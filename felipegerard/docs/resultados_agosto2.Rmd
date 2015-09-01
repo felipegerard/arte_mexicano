@@ -1,11 +1,13 @@
 ---
 title: "Extracción y minería de textos"
 author: "Felipe Gerard"
-date: "18 de agosto de 2015"
+date: "1o de septiembre de 2015"
 output: html_document
 ---
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F, message=FALSE}
+library(ggplot2)
+library(knitr)
 library(dplyr)
 library(tm)
 # library(Rstem)
@@ -15,9 +17,7 @@ library(textcat)
 library(slam)
 ```
 
-## Resumen
-
-### Estructura de almacenamiento de datos
+## Estructura de almacenamiento de datos
 
 Los archivos originales vienen agrupados por libro y por tipo de datos. Hay una carpeta por cada libro y dentro de ella hay una carpeta con los PDFs (`libro/pdf`) y otra con los JPGs (`libro/jpg`). Por lo tanto, decidimos almacenar los textos en una carpeta por separado (`libro/txt`), con los nombres correspondientes de los PDFs pero con terminación `.txt`. Adicionalmente, dentro de la carpeta de los textos hay una carpeta con el contenido completo del libro en un solo archivo (`libro/txt/full/libro.txt`). Más adelante describiremos cómo es que extrajimos los textos de los PDFs, pero por lo pronto, la estructura de las carpetas quedó como sigue:
 
@@ -83,58 +83,73 @@ Dado que la matriz de términos documentos es toda la información que necesitan
 
 El texto original se ve así (extracto):
 
-```{r, echo=FALSE}
-ej <- VCorpus(URISource('data/full-txt/12_artistas_donde_se_origina_el_arte_en_el_aire.txt'))[[1]]$content %>%
-  .[1480:1500] %>%
+```{r, echo=FALSE, warning=F, message=FALSE}
+ej <- VCorpus(URISource('../data/full-txt/12_artistas_donde_se_origina_el_arte_en_el_aire.txt'))[[1]]$content %>%
+  .[1480:1485] %>%
   gsub(pattern='\\f', replacement='\\\\f')
 cat(ej, sep = '\n')
 ```
 
 Después de haberle quitado la puntuación y las mayúsculas:
 
-```{r, echo=FALSE}
-load('data/corpora/corpus_books_completo.Rdata')
+```{r, echo=FALSE, warning=F, message=FALSE}
+load('../data/corpora/corpus_books_completo.Rdata')
 #regexpr('Actualmente es becario de Jóvenes Creadores', corp[[2]]$content, ignore.case = T)
-substr(corp[[2]]$content, 78775, (78775+1140))
+cat(substr(corp[[2]]$content, 79866, (79866+357)))
+```
+
+Después de hacer _stemming_:
+
+```{r, echo=FALSE, warning=F, message=FALSE}
+load('../data/corpora/corpus_books_completo_stem.Rdata')
+#regexpr('cub muse jos guadalup pos de la ciud de aguascalient', corp_stem[[2]]$content, ignore.case = T)
+ej2 <- substr(corp_stem[[2]]$content, 68549, 68936)
+cat(ej2)
+```
+
+Y si quitamos las _stopwords_:
+
+```{r, echo=FALSE, warning=F, message=FALSE}
+removeWords(ej2, stopwords('spanish')) %>%
+  stripWhitespace %>%
+  cat
 ```
 
 
 ### Estadísticas básicas
 
-A continuación presentamos algunos datos básicos sobre la colección.
+A continuación presentamos algunos datos básicos sobre la colección después de haberla limpiado y de haber quitado los textos de mala calidad.
 
-```{r, echo=FALSE}
-load('data/tdms/tdm_books_tf_stem.Rdata')
+```{r, echo=FALSE, warning=F, message=FALSE}
+load('../data/tdms/tdm_books_tf_stem.Rdata')
 ```
 
-Número de documentos: `r tdm_tf_stem$ncol`
-Número de términos: `r tdm_tf_stem$nrow`
-Tamaño del `Corpus` (archivo `.Rdata`): ~ 220 MB
-Tamaño de la matriz términos-documentos (archivo `.Rdata`): ~ 40 MB
-Longitud del término más largo: `r tdm_tf_stem$dimnames$Terms %>% nchar %>% max`
-Mínimo número de documentos en los que tiene que aparecer un término para ser tomado en cuenta: 2
+* Número de documentos: `r tdm_tf_stem$ncol`
+* Número de términos: `r tdm_tf_stem$nrow`
+* Tamaño del `Corpus` después del _stemming_ (archivo `.Rdata`): ~ 170 MB
+* Tamaño de la matriz términos-documentos (archivo `.Rdata`): ~ 40 MB
+* Longitud del término más largo: `r tdm_tf_stem$dimnames$Terms %>% nchar %>% max`
+* Mínimo número de documentos en los que tiene que aparecer un término para ser tomado en cuenta: 2
 
 A continuación presentamos un histograma del número de palabras por libro:
 
-```{r, echo=FALSE}
-library(ggplot2)
+```{r, echo=FALSE, warning=F, message=FALSE}
 doc_freqs <- col_sums(tdm_tf_stem, na.rm = T)
 names(doc_freqs) <- gsub('list\\("(.+)"\\)','\\1', names(doc_freqs))
-qplot(doc_freqs) + labs(x='Palabras', y='Documentos', title='Histograma del número de palabras en la colección limpia')
+qplot(doc_freqs) + labs(x='Longitud en palabras', y='', title='Histograma del número de palabras en la colección limpia')
 ```
 
 Y ahora una tabla con el número de documentos en cada idioma. Cabe notar que aquí ya sólo están los documentos en los idiomas permitidos y que no están en la lista negra.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F, message=FALSE}
 #rm(tdm_tf_stem)
 #gc()
-load('data/corpora/corpus_books_completo_stem.Rdata')
+load('../data/corpora/corpus_books_completo_stem.Rdata')
 meta <- meta(corp_stem, type='local') %>%
   lapply(function(x) data.frame(id=x$id[[1]], lang=x$language)) %>%
   rbind_all
 meta$words <- doc_freqs
 
-library(knitr)
 langs <- table(meta$lang) %>%
   as.data.frame %>%
   rename(Idioma=Var1, Documentos=Freq) 
@@ -151,7 +166,8 @@ langs %>%
 
 
 ### Análisis de palabras
-```{r, echo=FALSE}
+
+```{r, echo=FALSE, warning=F, message=FALSE}
 allowed_languages <- c('spanish','english',
                        'french','german',
                        'portuguese', 'italian')
@@ -166,26 +182,24 @@ words <- data.frame(word=names(word_freqs),
 
 Ahora haremos un breve análisis de las palabras más y menos frecuentes. Como aplicamos _stemming_ en realidad lo que estamos analizando es cuáles son las raíces más comunes. Las más frecuentes son:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F, message=FALSE}
 words %>%
   head(15) %>%
   kable
 library(wordcloud)
 set.seed(1234)
-wordcloud(words$word, words$freq, min.freq = 40000)
+wordcloud(words$word, words$freq, min.freq = 0, max.words = 50)
 ```
 
 La gran mayoría de las palabras aparecen menos de 50 veces:
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F, message=FALSE}
 words %>%
   filter(freq < 250) %>%
   ggplot(aes(freq)) +
     geom_bar(binwidth = 20) +
     labs(x='Frecuencia de la palabra', y='', title='Histograma de las frecuencias de las palabras')
 ```
-
-
 
 
 ### Notas
@@ -220,6 +234,7 @@ más que si contienen palabras comunes.
 
 La idea es entonces utilizar la consulta como "texto" y ver cuáles de los de la colección son los más parecidos. El resultado es que si buscamos con algunas palabras, el algoritmo nos traerá las páginas más relevantes a esos términos.
 
+
 ### Opción de "más como éste"
 
 Si se está viendo un texto, se puede utilizar como query para la búsqueda y así encontrar páginas similares fácilmente.
@@ -253,6 +268,8 @@ Dado que lo único que hace `pdftotext` es extraer metadatos ya contenidos en lo
 * `P r l n t e d In S p a l n`
 
 En algunos libros los problemas son aislados, pero en otros hay páginas enteras con este problema. La dificultad radica en que corregir esto es un problema muy costoso computacionalmente. La única alternativa viable es ver si se pueden marcar de alguna forma los textos con problemas para al menos saber dónde se puede mejorar.
+
+Además de eso en muchos casos lo que sucede es que se interpretan mal algunas letras, lo que ocasiona que tengamos muchas palabras mal escritas. Obligar a que las palabras aparezcan en al menos dos documentos para ser válidas ayuda, pero no es suficiente.
 
 ### JPGs y PDFs en la carpeta de PDFs
 
