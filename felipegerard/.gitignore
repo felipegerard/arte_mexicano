@@ -4,3 +4,4 @@ aws
 temp
 *.swp
 .ipynb_checkpoints
+mapfiles
