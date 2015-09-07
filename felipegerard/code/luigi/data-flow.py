@@ -10,11 +10,30 @@ import pickle
 import unicodedata
 from gensim import corpora, models, similarities
 
+# ----------------------------------------------------------------
+# Funciones y clases adicionales
+
 def remove_accents(input_str):
     if type(input_str) is not unicode:
         input_str = unicode(input_str, 'utf-8')
     nkfd_form = unicodedata.normalize('NFKD', input_str)
     return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
+
+class CorpusIterator(object):
+    def __init__(self, dir):
+        '''dir debe contener los documentos limpios'''
+        self.dir = dir
+        self.dir_list = os.listdir(self.dir)
+    
+    def __iter__(self):
+        for doc in self.dir_list:
+            f = open(self.dir + '/' + doc)
+            d = f.read() #.decode('utf-8')
+            f.close()
+            yield d
+
+# ----------------------------------------------------------------
+# Data Flow
 
 class InputText(luigi.ExternalTask):
     """
@@ -105,10 +124,64 @@ class Vectorize(luigi.Task):
 		return GenerateDictionary(self.input_dir, self.clean_dir, self.model_dir)
 
 	def run(self):
-		print 'Run!!!'
+		with self.input().open('r') as f:
+			dictionary = pickle.load(f)
+		print dictionary
+		corpus_iterator = CorpusIterator(self.clean_dir)
+		corpus_bow = [dictionary.doc2bow(d.split()) for d in corpus_iterator]
+		corpora.MmCorpus.serialize(self.model_dir + '/' + 'corpus.mmkt', corpus_bow)
 
 	def output(self):
-		return luigi.LocalTarget(self.model_dir + '/' + 'tf.pickle')
+		return luigi.LocalTarget(self.model_dir + '/' + 'corpus.mmkt')
+
+class TransformTFIDF(luigi.Task):
+	"""Docstring"""
+	input_dir = luigi.Parameter()
+	clean_dir = luigi.Parameter()
+	model_dir = luigi.Parameter()
+
+	def requires(self):
+		return Vectorize(self.input_dir, self.clean_dir, self.model_dir)
+
+	def run(self):
+		corpus = corpora.MmCorpus(self.model_dir + '/' + 'corpus.mmkt')
+		tfidf_transform = models.TfidfModel(corpus)
+		with self.output().open('w') as f:
+			pickle.dump(tfidf_transform, f)
+
+	def output(self):
+		return luigi.LocalTarget(self.model_dir + '/' + 'tfidf_transform.pickle')
+
+class DocumentSimilarities(luigi.Task):
+	"""Docstring"""
+	input_dir = luigi.Parameter()
+	clean_dir = luigi.Parameter()
+	model_dir = luigi.Parameter()
+	num_sim_docs = luigi.IntParameter(default=5)
+
+	def requires(self):
+		return TransformTFIDF(self.input_dir, self.clean_dir, self.model_dir)
+
+	def run(self):
+		with self.input().open('r') as f:
+			tfidf_transform = pickle.load(f)
+		corpus = corpora.MmCorpus(self.model_dir + '/' + 'corpus.mmkt')
+		corpus_tfidf = tfidf_transform[corpus]
+		index = similarities.MatrixSimilarity(corpus_tfidf)
+		index.save(self.model_dir + '/' + 'index.pickle')
+
+		sims = []
+		for doc in corpus_tfidf:
+			sim = sorted(enumerate(index[doc]), key = lambda item: item[1], reverse=True)
+			sims.append(sim[:self.num_sim_docs])
+			#print sims[:self.num_sim_docs]
+		with self.output()['similarities'].open('w') as f:
+			pickle.dump(sims, f)
+
+	def output(self):
+		return {'index':luigi.LocalTarget(self.model_dir + '/' + 'index.pickle'),\
+				'similarities':luigi.LocalTarget(self.model_dir + '/' + 'similarities.pickle')}
+
 
 if __name__ == '__main__':
 	luigi.run()
