@@ -56,30 +56,27 @@ class InputText(luigi.ExternalTask):
 
 class CleanText(luigi.Task):
 	"""docstring for CleanText"""
-	input_dir = luigi.Parameter()
-	clean_dir = luigi.Parameter()
+	input_file = luigi.Parameter()
+	clean_file = luigi.Parameter()
 
 	def requires(self):
-		return [ InputText(self.input_dir + '/' + filename)
-				for filename in os.listdir(self.input_dir) ]	
+		return InputText(self.input_file)	
 	
 	def run(self):
-		for inp, outp in zip(self.input(), self.output()):
-			fi = inp.open('r')
-			fo = outp.open('w')
-			txt = fi.read()#.decode('utf-8')
-			#txt = unicode(txt, 'utf-8') ### <-- This doesnt work either
-			txt = self.clean_text(txt)
-			# print txt[:100].encode('utf-8')
-			# print '---------------------------------------------'
-			fo.write(txt)
-			fi.close()
-			fo.close()
+		fi = self.input().open('r')
+		fo = self.output().open('w')
+		txt = fi.read()#.decode('utf-8')
+		#txt = unicode(txt, 'utf-8') ### <-- This doesnt work either
+		txt = self.clean_text(txt)
+		# print txt[:100].encode('utf-8')
+		# print '---------------------------------------------'
+		fo.write(txt)
+		fi.close()
+		fo.close()
 
 	def output(self):
 		# return luigi.LocalTarget(self.clean_dir + '/' + 'prueba.txt')
-		return [ luigi.LocalTarget(self.clean_dir + '/' + filename)
-				for filename in os.listdir(self.input_dir) ]
+		return luigi.LocalTarget(self.clean_file)
 
 	def clean_text(self, d):
 	    '''d debe ser un string'''
@@ -100,7 +97,7 @@ class GenerateDictionary(luigi.Task):
 	model_dir = luigi.Parameter()
 
 	def requires(self):
-		return CleanText(self.input_dir, self.clean_dir)
+		return [CleanText(self.input_dir + '/' + i, self.clean_dir + '/' + i) for i in os.listdir(self.input_dir)]
 
 	def run(self):
 		dictionary = corpora.Dictionary(doc.open('r').read().split() for doc in self.input())
@@ -171,7 +168,10 @@ class DocumentSimilarities(luigi.Task):
 		index.save(self.model_dir + '/' + 'index.pickle')
 
 		sims = []
+		iter = 1
 		for doc in corpus_tfidf:
+			iter = iter + 1
+			print iter
 			sim = sorted(enumerate(index[doc]), key = lambda item: item[1], reverse=True)
 			sims.append(sim[:self.num_sim_docs])
 			#print sims[:self.num_sim_docs]
