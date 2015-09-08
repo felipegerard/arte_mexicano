@@ -165,22 +165,21 @@ class DocumentSimilarities(luigi.Task):
 		corpus = corpora.MmCorpus(self.model_dir + '/' + 'corpus.mmkt')
 		corpus_tfidf = tfidf_transform[corpus]
 		index = similarities.MatrixSimilarity(corpus_tfidf)
-		index.save(self.model_dir + '/' + 'index.pickle')
+		#index.save(self.model_dir + '/' + 'index.pickle')
 
 		sims = []
-		iter = 1
+		i = 1
 		for doc in corpus_tfidf:
-			iter = iter + 1
+			i = i + 1
 			print iter
 			sim = sorted(enumerate(index[doc]), key = lambda item: item[1], reverse=True)
 			sims.append(sim[:self.num_sim_docs])
 			#print sims[:self.num_sim_docs]
-		with self.output()['similarities'].open('w') as f:
+		with self.output().open('w') as f:
 			pickle.dump(sims, f)
 
 	def output(self):
-		return {'index':luigi.LocalTarget(self.model_dir + '/' + 'index.pickle'),\
-				'similarities':luigi.LocalTarget(self.model_dir + '/' + 'similarities.pickle')}
+		return luigi.LocalTarget(self.model_dir + '/' + 'similarities.pickle')
 
 
 if __name__ == '__main__':
