@@ -1,0 +1,11 @@
+Para poder ejecutar la función de full-txt.sh es necesario haber corrido con anterioridad las funciones de mass_pdftotext.sh y parallel_pdftotext.sh (https://github.com/felipegerard/arte_mexicano/tree/master/felipegerard/code/prueba3), ya que son las funciones que extraen los txt de cada uno de los libros y pdfs. A su vez y lo más importante se crean carpetas /txt/ .
+
+Ahora bien, al tener lo anterior, simplemente se ejecuta la función sobre la carpeta donde se tiene la información.
+
+La ejecución es de la siguiente manera y arroja los siguientes resultados.
+
+$ ./full-txt.sh -f ~/Desktop/einformativa
+
+/Users/carlosmunguia/Desktop/einformativa/la_charreria_1933-1983/txt/full/la_charreria_1933-1983.txt
+
+/Users/carlosmunguia/Desktop/einformativa/la_familia_de_sorjuana_ines_de_la_cruz/txt/full/la_familia_de_sorjuana_ines_de_la_cruz.txt
