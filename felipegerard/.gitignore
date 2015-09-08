@@ -1,0 +1,12 @@
+.DS_Store
+data
+aws
+temp
+*.swp
+.ipynb_checkpoints
+mapfiles
+
+.viminfo
+.zcompdump
+.zsh_history
+.zshrc

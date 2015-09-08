@@ -1,0 +1,21 @@
+
+## Conferencias
+
+* Ciencia de Datos y Complejidad, Torino, Italia, 3 días, 14-17 de octubre
+
+* Bases de Datos y Modelado de Gobiernos, Alemania, 1 semana, finales de octubre
+
+* Workshop de métodos probabilísticos y Ciencia de Datos, Alemania, abril
+
+* Alguna otra conferencia interesante?
+
+
+Falta:
+
+* Que sea mandable
+* Lista de algoritmos
+* Ejemplo con más datos
+* Generar métricas de desempeño. Quality Statistical Control
+* Probar que el ETL y los algoritmos son escalables
+
+

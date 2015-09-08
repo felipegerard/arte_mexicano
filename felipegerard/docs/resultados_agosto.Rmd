@@ -1,0 +1,111 @@
+---
+title: "Extracción y minería de textos"
+author: "Felipe Gerard"
+date: "18 de agosto de 2015"
+output: html_document
+---
+
+## ELT
+
+### [E] Extracción de textos a partir de los PDFs
+
+Tenemos dos versiones, ambas basadas en el comando `pdftotext`. Una extrae los PDFs de directorios locales y la otra está pensada para usarse cuando se tienen en un S3 en lugar de localmente. Los pasos que hace la segunda versión son:
+
+1. Bajar los PDFs de un libro.
+2. Extraer el texto de cada PDF a la carpeta txt.
+3. Borrar los PDFs y volver a (1).
+
+Como en Einfo hicieron el mismo trabajo pero en la colección completa, en el futuro bastará bajarlos vía SSH...
+
+### [LT] Conversión a formato apropiado para minería de textos
+
+Independientemente de la fuente de los textos, se puede aplicar lo mismo (o casi) para minar los textos. Nada más habrá que tomar en cuenta la estructura de las carpetas. En este primer enfoque hacemos tanto la carga como la transformación (limpieza) en R:
+
+1. [L] Cargamos los datos a un Corpus del paquete tm.
+2. [T] Transformamos los datos a un formato apropiado para la minería:
+    - Limpiamos los datos:
+        + Quitamos caracteres especiales, puntuación, exceso de espacios, etc.
+        + Quitamos "stopwords".
+        + Hacemos _stemming_. Los experimentos sugieren que tal vez convenga _no_ hacer stemming.
+    - Generamos un Corpus limpio con metadatos.
+    - Finalmente, generamos la matriz de términos-documentos, con pesos dados según la aplicación:
+        + Para tópicos usamos frecuencias (TF) y hacemos el análisis _por libro_.
+        + Para búsquedas usamos TF-IDF y hacemos el análisis _por página_.
+
+La matriz de términos documentos es toda la información que necesitan los algoritmos para correr.
+
+## Minería de textos
+
+### Sistema completo
+
+El sistema que queremos implementar es una búsqueda avanzada inteligente. Queremos que tenga al menos los siguientes componentes:
+
+1. Filtro por tópicos calculados automáticamente usando (LDA).
+2. Búsqueda por palabras, frases o textos utilizando la metodología TF-IDF (primer entregable).
+3. Un botón que utilice la metodología del punto anterior para encontrar textos similares al que se está viendo.
+
+La idea es que los tópicos se complementen con la búsqueda para permitir la mayor precisión posible en la búsqueda. Si por alguna razón los tópicos automáticos no fueran satisfactorios, dado que se planea que sean por libro, se podría hacer una clasificación manual. A continuación describimos en un poco más de detalle los componentes.
+
+### Tópicos automáticos: LDA
+
+Actualmente estamos utilizando la técnica conocida cómo _LDA_ (Latent Dirichlet Allocation) para extraer los tópicos o temas reelevantes de los textos. Creemos que es mejor hacer la extracción de los tópicos a nivel de libro ya que los libros se tratan de un tema en particular. También estamos investigando si es posible extraer subtópicos, es decir una especie de tópicos jerarquzados o bien si es posible mapear más de un tema a cada documento. 
+
+Se han realizado pruebas para ver la efectividad de esta técnica, cambiando el parámetro del número de tópicos, sin embargo este depende de cada texto, por lo que estamos tratando de inferir un parámetro adecuado. También se propone dentro del análisis utilizar el corpus sin _stemming_ ya que no se interpreta con facilidad el tema y consideramos que es mejor así.
+
+### Búsqueda inteligente: TF-IDF
+
+Como está explicado en el primer entregable, la técnica TF-IDF es esencialmente una versión mejorada de `grep`. Dada una colección de palabras, regresa los textos más parecidos, tomando en cuenta los conteos de las palabras y su popularidad. Se basa en dos premisas básicas, que simplistamente son: (1) si dos textos tienen muchas ocurrencias de la misma palabra, significa que se se parecen y (2) si una palabra es poco común, entonces que dos textos la contengan aumenta su similitud más que si contienen palabras comunes.
+
+### Opción de "más como éste"
+
+Si se está viendo un texto, se puede utilizar como query para la búsqueda y así encontrar páginas similares fácilmente.
+
+### Notas
+
+Cabe mencionar que dado que los algoritmos propuestos son semisupervisados, no tiene mucho sentido quedarse con muestras de validación y prueba. Decimos que es semisupervisado porque aunque no hay una variable de respuesta, sí podemos evaluar el desempeño manualmente y podemos saber si la búsqueda fue exitosa o no. La etapa de validación en este caso tendrá que ser con criterio experto humano y ver si los resultados son satisfactorios o no.
+
+## Apéndice: Errores e inconsistencias
+
+### Lectura errónea de los textos
+
+`pdftotext` lee mal algunas fuentes: `C A T Á L O G O DE L A S O B R A S`, `P r l n t e d In S p a l n`. En algunos libros los problemas son aislados, pero en otros hay páginas enteras con este problema. La dificultad radica en que corregir esto es un problema muy costoso computacionalmente. Esperemos que Einfo no haya tenido el mismo problema, aunque probablemente viene desde la transformación a PDF.
+
+### JPGs y PDFs en la carpeta de PDFs
+
+* fables_choisies_muses_en_vers_par_j._de_la_fontaif
+* fables_de_la_fontaine_2
+* novedades_ano_2
+
+### PDFs corruptos
+
+Algunos PDFs con nombres no estandar por ejemplo: (prefijo)_cpt_### o bien (prefijo)_por_### en lugar de prefijo_int_###)
+
+* cimientos_del_artista_dibujante_y_pintor
+* encuentro
+
+### Carpetas con nombres feos
+
+Los caracteres permitidos son **[0-9a-z_.\\-]**
+
+* america\`s_small_houses
+* ch.christofle_&_c
+* confesiones_de_jose_luis_cuevas_(repetido_fisicamente)
+* dada_&_surrealism
+* discovering_man\`s_past_in_the_americas
+* dolores_olmedo_patino_(1908-2002)
+* fotografia_y_pintura_¿dosmedios_diferentes¿
+* giovanni_bellini_by_philip_hendy_&_ludwing_goldscheider
+* grabados_en_madera__(repetido_fisicamente)
+* hieronymus_bosch_(repetida)
+* hogarth\`s_graphic_works
+* i\`art_totalitaire
+* jose_puche_alvarez_(1896-1979)_historia_de_un_compromiso
+* l\`arte_delle_pietre_dure
+* la_pintura_espanola_(repetida)
+* meubles_d\`art
+* mexico_en_el_siglo_xix_2012-11-08_18;57;14_(full)
+* mexico_en_el_siglo_xix_2012-11-08_19;37;00_(full)
+* notes_sur_l\`emission_en_france_des_monnaies_decimales_de_bronze_1852-1865
+* pintura_de_juan_o\`gorman_en_la_biblioteca_gertrudis_bocanegra_de_patzcuaro_michoacan
+* ward\`s_mexico_vol.ii
+
