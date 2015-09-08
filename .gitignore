@@ -15,9 +15,4 @@ data
 vignettes/*.html
 vignettes/*.pdf
 
-# Docker configuration files
-.viminfo
-.zcompdump
-.zsh_history
-.zshrc
-.Rproj.user
+*.DS_Store
