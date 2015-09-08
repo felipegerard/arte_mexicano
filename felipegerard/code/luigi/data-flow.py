@@ -160,19 +160,27 @@ class DocumentSimilarities(luigi.Task):
 		return TransformTFIDF(self.input_dir, self.clean_dir, self.model_dir)
 
 	def run(self):
+		print 'Loading Transform'
+		print '==========================='
 		with self.input().open('r') as f:
 			tfidf_transform = pickle.load(f)
+		print 'Loading Corpus'
+		print '==========================='
 		corpus = corpora.MmCorpus(self.model_dir + '/' + 'corpus.mmkt')
-		corpus_tfidf = tfidf_transform[corpus]
-		index = similarities.MatrixSimilarity(corpus_tfidf)
+		print 'Creating Index'
+		print '==========================='
+		index = similarities.MatrixSimilarity(tfidf_transform[corpus])
 		#index.save(self.model_dir + '/' + 'index.pickle')
 
+		print 'Calculating Similarities'
+		print '==========================='
 		sims = []
 		i = 1
-		for doc in corpus_tfidf:
+		for doc in corpus:
 			i = i + 1
-			print iter
-			sim = sorted(enumerate(index[doc]), key = lambda item: item[1], reverse=True)
+			print i
+			doc_tfidf = tfidf_transform[doc]
+			sim = sorted(enumerate(index[doc_tfidf]), key = lambda item: item[1], reverse=True)
 			sims.append(sim[:self.num_sim_docs])
 			#print sims[:self.num_sim_docs]
 		with self.output().open('w') as f:
