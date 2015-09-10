@@ -53,7 +53,7 @@ def convertir(rutaVolumen, hojas=None):
 def obtenerRutasBasePDF(rutaGeneral):
 	##### Hardcodeado feo
 	#return [os.path.join(rutaGeneral,x,x.split("_DSPACE")[0]) for x in os.listdir(rutaGeneral) if "_DSPACE" in x]
-	return [x for x in os.listdir(rutaGeneral)]
+	return [os.path.join(rutaGeneral,x) for x in os.listdir(rutaGeneral)]
 
 def obtenerRutaVolumenes(rutaBasePDF):
 	return [os.path.join(rutaBasePDF,x) for x in os.listdir(rutaBasePDF) if ".pdf" in x]
@@ -102,8 +102,7 @@ def extraerVolumenes(rutasBasePDF,rutaBaseTXTs,librosNoConvertidos):
 		print "Convirtiendo "+rutaBasePDF
 		if agregarARegistro(rutaBaseTXTs,rutaBasePDF):
 			rutaVolumenes = obtenerRutaVolumenes(rutaBasePDF)
-			#####
-			obtenerRutaVolumenes
+
 			contenido = convertirVolumenes(rutaVolumenes)
 			idioma = detectarIdioma(contenido)	
 			nombreLibro = os.path.split(rutaBasePDF)[-1]
@@ -150,6 +149,8 @@ def main(args):
 		os.makedirs(rutaBaseTXTs)
 	
 	rutasBasePDF = obtenerRutasBasePDF(rutaGeneral)
+	#####
+	print rutasBasePDF
 	for i,d in enumerate(rutasBasePDF):
 		print i, ': ', d
 	extraerVolumenes(rutasBasePDF,rutaBaseTXTs,librosNoConvertidos)

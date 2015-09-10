@@ -13,42 +13,6 @@ from gensim import corpora, models, similarities
 # ----------------------------------------------------------------
 # Funciones y clases adicionales
 
-##### Detección de idioma
-# Instalar los modulos que hacen falta
-# $ pip install nltk
-# import nltk
-# nltk.download('stopwords')
-
-##### 
-# pip install pdfminer
-
-from nltk import wordpunct_tokenize
-from nltk.corpus import stopwords
-
-def calcularValoresDeIdioma(contenido):
-corpora.Dictionary(
-        languages_ratios = {}
-
-        tokens = wordpunct_tokenize(contenido)
-        words = [word.lower() for word in tokens]
-        # Idioma = idioma con mayor cantidad de stopwords distintas en el texto
-        for language in stopwords.fileids():
-                stopwords_set = set(stopwords.words(language))
-                words_set = set(words)
-                common_elements = words_set.intersection(stopwords_set)
-
-                languages_ratios[language] = len(common_elements)
-
-        return languages_ratios
-
-def detectarIdioma(contenido):
-
-        valores = calcularValoresDeIdioma(contenido)
-
-        idioma = max(valores, key=valores.get)
-
-        return idioma
-
 # Quitar caracteres con acentos
 def remove_accents(input_str):
     if type(input_str) is not unicode:
@@ -72,6 +36,67 @@ class CorpusIterator(object):
 
 # ----------------------------------------------------------------
 # Data Flow
+
+# Imports UNAM
+try:
+	from cStringIO import StringIO
+except:
+	from StringIO import StringIO
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfpage import PDFPage
+from nltk import wordpunct_tokenize
+from nltk.corpus import stopwords
+
+
+
+# Input PDF
+
+class InputPDF(luigi.ExternalTask):
+	filename = luigi.Parameter()
+	def output(self):
+		return luigi.LocalTarget(self.filename)
+
+# pdf2text
+
+class PDF2TXT(luigi.Task):
+	pdf_dir = luigi.Parameter()
+	txt_dir = luigi.Parameter()
+	def require(self):
+		return [InputPDF(os.path.join(self.pdf_dir, d)) for d in os.listdir(self.pdf_dir)]
+
+	def run(self):
+		print 'XXXXXXXXXXX'
+		for i, dir_base in enumerate(self.input()):
+			print i
+			text = self.convertir(dir_base)
+			with open(os.path.join(self.txt_dir,'test'+i+'.txt')) as f:
+				f.write(text)
+	
+	def output(self):
+		return [luigi.LocalTarget(os.path.join(self.txt_dir,d)) for d in os.listdir(self.txt_dir)]
+
+	def convertir(self, Volumen, hojas=None): #####
+	    if not hojas:
+	        hojas = set()
+	    else:
+	        hojas = set(hojas)
+
+	    output = StringIO()
+	    manager = PDFResourceManager()
+	    converter = TextConverter(manager, output, laparams=LAParams())
+	    interpreter = PDFPageInterpreter(manager, converter)
+
+	    infile = Volumen.open('rb') ##### infile = file(rutaVolumen, 'rb')
+	    for hoja in PDFPage.get_pages(infile, hojas):
+	        interpreter.process_page(hoja)
+	    infile.close()
+	    converter.close()
+	    text = output.getvalue()
+	    output.close
+	    return text
+
 
 class InputText(luigi.ExternalTask):
     """
