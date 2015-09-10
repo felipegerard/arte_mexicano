@@ -13,12 +13,50 @@ from gensim import corpora, models, similarities
 # ----------------------------------------------------------------
 # Funciones y clases adicionales
 
+##### Detección de idioma
+# Instalar los modulos que hacen falta
+# $ pip install nltk
+# import nltk
+# nltk.download('stopwords')
+
+##### 
+# pip install pdfminer
+
+from nltk import wordpunct_tokenize
+from nltk.corpus import stopwords
+
+def calcularValoresDeIdioma(contenido):
+corpora.Dictionary(
+        languages_ratios = {}
+
+        tokens = wordpunct_tokenize(contenido)
+        words = [word.lower() for word in tokens]
+        # Idioma = idioma con mayor cantidad de stopwords distintas en el texto
+        for language in stopwords.fileids():
+                stopwords_set = set(stopwords.words(language))
+                words_set = set(words)
+                common_elements = words_set.intersection(stopwords_set)
+
+                languages_ratios[language] = len(common_elements)
+
+        return languages_ratios
+
+def detectarIdioma(contenido):
+
+        valores = calcularValoresDeIdioma(contenido)
+
+        idioma = max(valores, key=valores.get)
+
+        return idioma
+
+# Quitar caracteres con acentos
 def remove_accents(input_str):
     if type(input_str) is not unicode:
         input_str = unicode(input_str, 'utf-8')
     nkfd_form = unicodedata.normalize('NFKD', input_str)
     return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
 
+# Iterar sobre un corpus
 class CorpusIterator(object):
     def __init__(self, dir):
         '''dir debe contener los documentos limpios'''
