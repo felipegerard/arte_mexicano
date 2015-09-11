@@ -52,50 +52,40 @@ from nltk.corpus import stopwords
 
 
 # Input PDF
-
 class InputPDF(luigi.ExternalTask):
 	filename = luigi.Parameter()
 	def output(self):
 		return luigi.LocalTarget(self.filename)
 
-# pdf2text
 
-class PDF2TXT(luigi.Task):
+# Input book
+execfile('functions/pdf2txt.py')
+
+class ReadText(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	def require(self):
-		return [InputPDF(os.path.join(self.pdf_dir, d)) for d in os.listdir(self.pdf_dir)]
 
+
+	def requires(self):
+		[InputPDF(self.pdf_dir + '/' + book_name + '/' + f) \
+			for book_name in os.listdir(self.pdf_dir) \
+			for f in os.listdir(self.pdf_dir + '/' + book_name)]
+		
 	def run(self):
-		print 'XXXXXXXXXXX'
-		for i, dir_base in enumerate(self.input()):
-			print i
-			text = self.convertir(dir_base)
-			with open(os.path.join(self.txt_dir,'test'+i+'.txt')) as f:
-				f.write(text)
+		
+		if not os.path.exists(self.txt_dir):
+			print "Creando carpeta base para archivos txt."
+			os.makedirs(self.txt_dir)
+		librosNoConvertidos = []
+		rutasBasePDF = obtenerRutasBasePDF(self.pdf_dir)
+		extraerVolumenes(rutasBasePDF,self.txt_dir,librosNoConvertidos)
+		print self.pdf_dir
+		print rutasBasePDF
+		with open(self.txt_dir + '/' + 'librosNoConvertidos.txt', 'w') as f:
+			f.writelines(librosNoConvertidos)
 	
 	def output(self):
-		return [luigi.LocalTarget(os.path.join(self.txt_dir,d)) for d in os.listdir(self.txt_dir)]
-
-	def convertir(self, Volumen, hojas=None): #####
-	    if not hojas:
-	        hojas = set()
-	    else:
-	        hojas = set(hojas)
-
-	    output = StringIO()
-	    manager = PDFResourceManager()
-	    converter = TextConverter(manager, output, laparams=LAParams())
-	    interpreter = PDFPageInterpreter(manager, converter)
-
-	    infile = Volumen.open('rb') ##### infile = file(rutaVolumen, 'rb')
-	    for hoja in PDFPage.get_pages(infile, hojas):
-	        interpreter.process_page(hoja)
-	    infile.close()
-	    converter.close()
-	    text = output.getvalue()
-	    output.close
-	    return text
+		return [luigi.LocalTarget(self.txt_dir + '/' + book_name + '.txt') for book_name in os.listdir(self.pdf_dir)]
 
 
 class InputText(luigi.ExternalTask):

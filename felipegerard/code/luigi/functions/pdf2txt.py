@@ -137,27 +137,27 @@ def detectarIdioma(contenido):
 
 	return idioma
 
-def main(args):	
+# def main(args):	
 
-	rutaGeneral = args[1] #libros/
-	rutaBaseTXTs = args[2]
-	librosNoConvertidos = list()
+# 	rutaGeneral = args[1] #libros/
+# 	rutaBaseTXTs = args[2]
+# 	librosNoConvertidos = list()
 	
-	if not os.path.exists(rutaBaseTXTs):
-		logging.info("Creando carpeta base para archivos txt.")
-		print "Creando carpeta base para archivos txt."
-		os.makedirs(rutaBaseTXTs)
+# 	if not os.path.exists(rutaBaseTXTs):
+# 		logging.info("Creando carpeta base para archivos txt.")
+# 		print "Creando carpeta base para archivos txt."
+# 		os.makedirs(rutaBaseTXTs)
 	
-	rutasBasePDF = obtenerRutasBasePDF(rutaGeneral)
-	#####
-	print rutasBasePDF
-	for i,d in enumerate(rutasBasePDF):
-		print i, ': ', d
-	extraerVolumenes(rutasBasePDF,rutaBaseTXTs,librosNoConvertidos)
+# 	rutasBasePDF = obtenerRutasBasePDF(rutaGeneral)
+# 	#####
+# 	print rutasBasePDF
+# 	for i,d in enumerate(rutasBasePDF):
+# 		print i, ': ', d
+# 	extraerVolumenes(rutasBasePDF,rutaBaseTXTs,librosNoConvertidos)
 
-	return True, librosNoConvertidos
+# 	return True, librosNoConvertidos
 
-if __name__ == '__main__':
-    main(sys.argv)
+# if __name__ == '__main__':
+#     main(sys.argv)
 
 
