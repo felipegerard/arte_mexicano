@@ -110,6 +110,7 @@ class GenerateDictionary(luigi.Task):
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	min_docs_per_lang = luigi.IntParameter(default=1)
+	idiomas = []
 
 	def requires(self):
 		return ReadText(self.pdf_dir, self.txt_dir)	
@@ -120,6 +121,7 @@ class GenerateDictionary(luigi.Task):
 		idiomas = [idioma for idioma in idiomas \
 			if '.' not in idioma \
 				and idioma not in idiomas_omitidos]
+		self.idiomas = idiomas
 		for idioma in idiomas:
 			print '=========================='
 			print 'Generando ' + idioma
@@ -131,16 +133,15 @@ class GenerateDictionary(luigi.Task):
 			elif not os.path.exists(self.model_dir):
 				print "Creando carpeta base para modelos."
 				os.makedirs(self.model_dir)
-			listaArchivos = generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
-			generarCorpus(rutaTextos, self.model_dir, 6, idioma)
-			
+			generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
+			#generarCorpus(rutaTextos, self.model_dir, 6, idioma)
 
-		with self.output().open('w') as f:
+		with open(self.txt_dir + '/idiomas.txt', 'w') as f:
 			f.write('\n'.join(idiomas) + '\n')
 
 	def output(self):
-		# return luigi.LocalTarget(self.clean_dir + '/' + 'prueba.txt')
-		return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
+		return [luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in self.idiomas]
+		#return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
 
 
 # class GenerateDictionary(luigi.Task):

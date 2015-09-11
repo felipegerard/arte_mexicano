@@ -57,10 +57,10 @@ def obtenerCarpetasDeIdioma(rutaBaseTXTs):
 
 def generarDiccionario(carpeta_textos, carpeta_salida, truncamiento, idioma):
 	generadorDiccionario = GeneradorDiccionario(carpeta_textos, carpeta_salida, truncamiento)
-	listaArchivos = generadorDiccionario.obtenerLibros()
+	#FELIPE# listaArchivos = generadorDiccionario.obtenerLibros()
 	generadorDiccionario.generarDiccionario()
 	generadorDiccionario.serializarDiccionario(idioma)
-	return listaArchivos
+	#FELIPE# return listaArchivos
 
 def generarCorpus(carpeta_textos, carpeta_salida, truncamiento, idioma):
 	generadorCorpus = GeneradorCorpus(carpeta_textos, carpeta_salida, truncamiento)

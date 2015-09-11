@@ -20,11 +20,11 @@ class GeneradorDiccionario(object):
 		self.carpeta_textos = carpeta_textos
 		self.carpeta_salida = carpeta_salida
 		self.truncamiento = truncamiento
+		self.archivos = os.listdir(self.carpeta_textos)
 		logging.info("GeneradorDiccionario creado.")
 		print "GeneradorDiccionario creado."
 
 	def obtenerLibros(self):
-		self.archivos = os.listdir(self.carpeta_textos)
 		return self.archivos
 
 
