@@ -80,13 +80,15 @@ def agregarARegistro(rutaBaseTXTs,rutaBasePDF):
 	ap.close()
 	return bandera
 
+#FELIPE#
 def guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido):
-        nombreLibro = os.path.join(rutaBaseTXTs,idioma,nombreLibro+".txt")
+        # nombreLibro = os.path.join(rutaBaseTXTs,idioma,nombreLibro+".txt")
+        nombreLibro = os.path.join(rutaBaseTXTs,'books',nombreLibro+".txt")
 
-        if not os.path.exists(os.path.join(rutaBaseTXTs,idioma)):
-                logging.info("Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma))
-                print "Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma)
-                os.makedirs(os.path.join(rutaBaseTXTs,idioma))
+        # if not os.path.exists(os.path.join(rutaBaseTXTs,idioma)):
+        #         logging.info("Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma))
+        #         print "Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma)
+        #         os.makedirs(os.path.join(rutaBaseTXTs,idioma))
 
         ap = open(nombreLibro,"w")
         ap.write(contenido)
@@ -95,7 +97,7 @@ def guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido):
 
 #FELIPE#
 def extraerVolumenes(inputPDF,rutaBaseTXTs,librosNoConvertidos):
-	info = []
+	agregados = []
 	for pdf in inputPDF:
 		print "---------------------------------"
 		print "Convirtiendo "+pdf.path
@@ -104,11 +106,11 @@ def extraerVolumenes(inputPDF,rutaBaseTXTs,librosNoConvertidos):
 		idioma = detectarIdioma(contenido)	
 		nombreLibro = os.path.split(pdf.path)[-1]
 		print idioma+": "+nombreLibro
-		with open(os.path.join(rutaBaseTXTs,"librosAgregados.tm"),"a+") as ap:
-			ap.write(rutaBaseTXTs + '/' + idioma + '/' + nombreLibro + '\n')
 		guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido)
-		info.append(os.path.join(rutaBaseTXTs, idioma, nombreLibro+'.txt'))
-	return info
+		
+		agregados.append(idioma + '\t' + nombreLibro)
+	with open(os.path.join(rutaBaseTXTs,"librosAgregados.tm"),'w') as ap:
+			ap.writelines('\n'.join(agregados))
 
 
 

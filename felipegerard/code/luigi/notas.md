@@ -16,3 +16,6 @@ $ pip install pdfminer
     * spanish
     * english
     * ...
+
+## To do
++ Paralelizar. Por ejemplo por idioma
