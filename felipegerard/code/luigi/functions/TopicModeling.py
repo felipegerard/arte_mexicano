@@ -16,7 +16,7 @@ import shutil
 LOG_FILENAME = 'TopicModeling.log'
 logging.basicConfig(filename=LOG_FILENAME, format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 import argparse
-import verificadorPaquetes
+#import verificadorPaquetes
 try:
 	import pdf2txt
 	from GeneradorDiccionario import GeneradorDiccionario

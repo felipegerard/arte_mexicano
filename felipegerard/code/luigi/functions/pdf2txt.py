@@ -107,7 +107,7 @@ def extraerVolumenes(inputPDF,rutaBaseTXTs,librosNoConvertidos):
 		with open(os.path.join(rutaBaseTXTs,"librosAgregados.tm"),"a+") as ap:
 			ap.write(rutaBaseTXTs + '/' + idioma + '/' + nombreLibro + '\n')
 		guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido)
-		info.append(os.path.join(idioma, os.path.split(pdf.path)[-1]))
+		info.append(os.path.join(rutaBaseTXTs, idioma, nombreLibro+'.txt'))
 	return info
 
 

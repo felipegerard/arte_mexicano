@@ -80,6 +80,7 @@ class ReadText(luigi.Task):
 		self.outputs = extraerVolumenes(self.input(),self.txt_dir,librosNoConvertidos)
 		with open(self.txt_dir + '/' + 'librosNoConvertidos.txt', 'w') as f:
 			f.writelines(librosNoConvertidos)
+		print self.outputs
 	
 	def output(self):
 		return [luigi.LocalTarget(book) for book in self.outputs]
@@ -99,10 +100,16 @@ def clean_text(self, d):
 	    return d
 
 # Generar diccionario
+execfile('functions/GeneradorDiccionario.py')
+execfile('functions/GeneradorCorpus.py')
+execfile('functions/TopicModeling.py')
+
 class GenerateDictionary(luigi.Task):
 	"""docstring for CleanText"""
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	model_dir = luigi.Parameter()
+	min_docs_per_lang = luigi.IntParameter(default=1)
 
 	def requires(self):
 		return ReadText(self.pdf_dir, self.txt_dir)	
@@ -114,10 +121,22 @@ class GenerateDictionary(luigi.Task):
 			if '.' not in idioma \
 				and idioma not in idiomas_omitidos]
 		for idioma in idiomas:
-			print idioma
+			print '=========================='
+			print 'Generando ' + idioma
+			rutaTextos = os.path.join(self.txt_dir,idioma)
+			if len(os.listdir(rutaTextos)) < self.min_docs_per_lang:
+				logging.info("No hay suficientes muestras para generar el modelo. Omitiendo idioma.")
+				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma."
+				continue
+			elif not os.path.exists(self.model_dir):
+				print "Creando carpeta base para modelos."
+				os.makedirs(self.model_dir)
+			listaArchivos = generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
+			generarCorpus(rutaTextos, self.model_dir, 6, idioma)
+			
+
 		with self.output().open('w') as f:
-			#f.writelines(idiomas)
-			f.write('success!')
+			f.write('\n'.join(idiomas) + '\n')
 
 	def output(self):
 		# return luigi.LocalTarget(self.clean_dir + '/' + 'prueba.txt')

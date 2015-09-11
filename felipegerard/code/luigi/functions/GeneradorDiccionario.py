@@ -35,7 +35,8 @@ class GeneradorDiccionario(object):
 			self.cargarArchivo(os.path.join(self.carpeta_textos, archivo), diccionario)
 		
 		#elimina elementos del diccionario con una sola ocurrencia
-		once_ids = [tokenid for tokenid, docfreq in diccionario.dfs.iteritems() if docfreq == 1]
+		#FELIPE# Para pruebas no quito once_ids
+		once_ids = [tokenid for tokenid, docfreq in diccionario.dfs.iteritems() if docfreq == 0]
 		diccionario.filter_tokens(once_ids)
 		#elimina espacios resultantes del eliminado de elementos
 		diccionario.compactify()
