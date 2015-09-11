@@ -80,39 +80,38 @@ def agregarARegistro(rutaBaseTXTs,rutaBasePDF):
 	ap.close()
 	return bandera
 
-
 def guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido):
-	nombreLibro = os.path.join(rutaBaseTXTs,idioma,nombreLibro+".txt")
+        nombreLibro = os.path.join(rutaBaseTXTs,idioma,nombreLibro+".txt")
 
-	if not os.path.exists(os.path.join(rutaBaseTXTs,idioma)):
-		logging.info("Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma))
-		print "Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma)
-		os.makedirs(os.path.join(rutaBaseTXTs,idioma))
+        if not os.path.exists(os.path.join(rutaBaseTXTs,idioma)):
+                logging.info("Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma))
+                print "Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma)
+                os.makedirs(os.path.join(rutaBaseTXTs,idioma))
 
-	ap = open(nombreLibro,"w")
-	ap.write(contenido)
-	ap.close()
-	logging.info(nombreLibro+" guardado en " + nombreLibro)
-	print nombreLibro + " guardado en " + nombreLibro
+        ap = open(nombreLibro,"w")
+        ap.write(contenido)
+        ap.close()
+        print nombreLibro + " guardado en " + nombreLibro
+
+#FELIPE#
+def extraerVolumenes(inputPDF,rutaBaseTXTs,librosNoConvertidos):
+	info = []
+	for pdf in inputPDF:
+		print "---------------------------------"
+		print "Convirtiendo "+pdf.path
+		rutaVolumenes = obtenerRutaVolumenes(pdf.path)
+		contenido = convertirVolumenes(rutaVolumenes)
+		idioma = detectarIdioma(contenido)	
+		nombreLibro = os.path.split(pdf.path)[-1]
+		print idioma+": "+nombreLibro
+		with open(os.path.join(rutaBaseTXTs,"librosAgregados.tm"),"a+") as ap:
+			ap.write(rutaBaseTXTs + '/' + idioma + '/' + nombreLibro + '\n')
+		guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido)
+		info.append(os.path.join(idioma, os.path.split(pdf.path)[-1]))
+	return info
 
 
-def extraerVolumenes(rutasBasePDF,rutaBaseTXTs,librosNoConvertidos):
-	for rutaBasePDF in rutasBasePDF:
-		logging.info("Convirtiendo "+rutaBasePDF)
-		print "Convirtiendo "+rutaBasePDF
-		if agregarARegistro(rutaBaseTXTs,rutaBasePDF):
-			rutaVolumenes = obtenerRutaVolumenes(rutaBasePDF)
 
-			contenido = convertirVolumenes(rutaVolumenes)
-			idioma = detectarIdioma(contenido)	
-			nombreLibro = os.path.split(rutaBasePDF)[-1]
-		
-			logging.info(idioma+": "+nombreLibro)
-			print idioma+": "+nombreLibro
-			guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido)
-		else:
-			logging.info("El libro ya ha sido convertido.")
-			print "El libro ya ha sido convertido."
 def calcularValoresDeIdioma(contenido):
 
 	languages_ratios = {}

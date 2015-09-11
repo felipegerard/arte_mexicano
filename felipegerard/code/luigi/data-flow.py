@@ -64,74 +64,30 @@ execfile('functions/pdf2txt.py')
 class ReadText(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-
+	outputs = []
 
 	def requires(self):
-		[InputPDF(self.pdf_dir + '/' + book_name + '/' + f) \
-			for book_name in os.listdir(self.pdf_dir) \
-			for f in os.listdir(self.pdf_dir + '/' + book_name)]
+		return [InputPDF(self.pdf_dir + '/' + book_name)
+			for book_name in os.listdir(self.pdf_dir)]
+			#  \
+			# for f in os.listdir(self.pdf_dir + '/' + book_name)]
 		
 	def run(self):
-		
 		if not os.path.exists(self.txt_dir):
 			print "Creando carpeta base para archivos txt."
 			os.makedirs(self.txt_dir)
 		librosNoConvertidos = []
-		rutasBasePDF = obtenerRutasBasePDF(self.pdf_dir)
-		extraerVolumenes(rutasBasePDF,self.txt_dir,librosNoConvertidos)
-		print self.pdf_dir
-		print rutasBasePDF
+		self.outputs = extraerVolumenes(self.input(),self.txt_dir,librosNoConvertidos)
 		with open(self.txt_dir + '/' + 'librosNoConvertidos.txt', 'w') as f:
 			f.writelines(librosNoConvertidos)
 	
 	def output(self):
-		return [luigi.LocalTarget(self.txt_dir + '/' + book_name + '.txt') for book_name in os.listdir(self.pdf_dir)]
+		return [luigi.LocalTarget(book) for book in self.outputs]
 
 
-class InputText(luigi.ExternalTask):
-    """
-    This class represents something that was created elsewhere by an external process,
-    so all we want to do is to implement the output method.
-    """
-    filename = luigi.Parameter()
+# Limpiar texto ### FALTA
 
-    def output(self):
-        """
-        Returns the target output for this task.
-        In this case, it expects a file to be present in the local file system.
-        :return: the target output for this task.
-        :rtype: object (:py:class:`luigi.target.Target`)
-        """
-
-        # The directory containing this file
-        root = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + "/"
-        return luigi.LocalTarget(root + self.filename)
-
-class CleanText(luigi.Task):
-	"""docstring for CleanText"""
-	input_file = luigi.Parameter()
-	clean_file = luigi.Parameter()
-
-	def requires(self):
-		return InputText(self.input_file)	
-	
-	def run(self):
-		fi = self.input().open('r')
-		fo = self.output().open('w')
-		txt = fi.read()#.decode('utf-8')
-		#txt = unicode(txt, 'utf-8') ### <-- This doesnt work either
-		txt = self.clean_text(txt)
-		# print txt[:100].encode('utf-8')
-		# print '---------------------------------------------'
-		fo.write(txt)
-		fi.close()
-		fo.close()
-
-	def output(self):
-		# return luigi.LocalTarget(self.clean_dir + '/' + 'prueba.txt')
-		return luigi.LocalTarget(self.clean_file)
-
-	def clean_text(self, d):
+def clean_text(self, d):
 	    '''d debe ser un string'''
 	    d = remove_accents(d)
 	    d = re.sub('\n', ' ', d)
@@ -142,27 +98,55 @@ class CleanText(luigi.Task):
 	    d = re.sub(' [^ ]*(.)\\1{2,}[^ ]* ', ' ', d)
 	    return d
 
-
+# Generar diccionario
 class GenerateDictionary(luigi.Task):
-	"""Docstring"""
-	input_dir = luigi.Parameter()
-	clean_dir = luigi.Parameter()
-	model_dir = luigi.Parameter()
+	"""docstring for CleanText"""
+	pdf_dir = luigi.Parameter()
+	txt_dir = luigi.Parameter()
 
 	def requires(self):
-		return [CleanText(self.input_dir + '/' + i, self.clean_dir + '/' + i) for i in os.listdir(self.input_dir)]
-
+		return ReadText(self.pdf_dir, self.txt_dir)	
+	
 	def run(self):
-		dictionary = corpora.Dictionary(doc.open('r').read().split() for doc in self.input())
-		once_ids = [tokenid for tokenid, docfreq in dictionary.dfs.iteritems() if docfreq <= 1]
-		dictionary.filter_tokens(once_ids) # remove words that appear only once
-		dictionary.compactify()
-		f = self.output().open('w')
-		pickle.dump(dictionary, f)
-		f.close()
+		idiomas_omitidos = ['swedish']
+		idiomas = os.listdir(self.txt_dir)
+		idiomas = [idioma for idioma in idiomas \
+			if '.' not in idioma \
+				and idioma not in idiomas_omitidos]
+		for idioma in idiomas:
+			print idioma
+		with self.output().open('w') as f:
+			#f.writelines(idiomas)
+			f.write('success!')
 
 	def output(self):
-		return luigi.LocalTarget(self.model_dir + '/' + 'dictionary.pickle')
+		# return luigi.LocalTarget(self.clean_dir + '/' + 'prueba.txt')
+		return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
+
+
+# class GenerateDictionary(luigi.Task):
+# 	"""Docstring"""
+# 	input_dir = luigi.Parameter()
+# 	clean_dir = luigi.Parameter()
+# 	model_dir = luigi.Parameter()
+
+# 	def requires(self):
+# 		return [CleanText(self.input_dir + '/' + i, self.clean_dir + '/' + i) for i in os.listdir(self.input_dir)]
+
+# 	def run(self):
+# 		if not os.path.exists(self.clean_dir):
+# 			print "Creando carpeta base para archivos txt."
+# 			os.makedirs(self.clean_dir)
+# 		dictionary = corpora.Dictionary(doc.open('r').read().split() for doc in self.input())
+# 		once_ids = [tokenid for tokenid, docfreq in dictionary.dfs.iteritems() if docfreq <= 1]
+# 		dictionary.filter_tokens(once_ids) # remove words that appear only once
+# 		dictionary.compactify()
+# 		f = self.output().open('w')
+# 		pickle.dump(dictionary, f)
+# 		f.close()
+
+# 	def output(self):
+# 		return luigi.LocalTarget(self.model_dir + '/' + 'dictionary.pickle')
 
 class Vectorize(luigi.Task):
 	"""Docstring"""
