@@ -81,19 +81,21 @@ def agregarARegistro(rutaBaseTXTs,rutaBasePDF):
 	return bandera
 
 #FELIPE#
-def guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido):
-        # nombreLibro = os.path.join(rutaBaseTXTs,idioma,nombreLibro+".txt")
-        nombreLibro = os.path.join(rutaBaseTXTs,'books',nombreLibro+".txt")
-
-        # if not os.path.exists(os.path.join(rutaBaseTXTs,idioma)):
-        #         logging.info("Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma))
-        #         print "Creando carpeta de idioma: "+os.path.join(rutaBaseTXTs,idioma)
-        #         os.makedirs(os.path.join(rutaBaseTXTs,idioma))
-
-        ap = open(nombreLibro,"w")
-        ap.write(contenido)
-        ap.close()
-        print nombreLibro + " guardado en " + nombreLibro
+def guardarMetadatos(inp,idioma,txt_dir,meta_file):
+	book_name = os.path.split(inp().path)[-1]
+	outfile = os.path.join(txt_dir,'books',book_name+'.txt')
+	# print '======================'
+	# print idioma + '\t'+ outfile
+	meta = txt_dir + '/' + meta_file
+	flag = True
+	if os.path.exists(meta):
+		with open(meta, 'r') as f:
+			log = f.read()
+			if outfile in log:
+				flag = False
+	if flag:
+		with open(meta, 'a+') as f:
+			f.write(outfile + '\t'+ idioma + '\n')
 
 #FELIPE#
 def extraerVolumenes(inputPDF,rutaBaseTXTs,librosNoConvertidos):
@@ -111,6 +113,23 @@ def extraerVolumenes(inputPDF,rutaBaseTXTs,librosNoConvertidos):
 		agregados.append(idioma + '\t' + nombreLibro)
 	with open(os.path.join(rutaBaseTXTs,"librosAgregados.tm"),'w') as ap:
 			ap.writelines('\n'.join(agregados))
+
+
+#FELIPE#
+def extraerVolumen(inputPDF):
+	print "---------------------------------"
+	print "Convirtiendo "+inputPDF.path
+	rutaVolumenes = obtenerRutaVolumenes(inputPDF.path)
+	contenido = convertirVolumenes(rutaVolumenes)
+	idioma = detectarIdioma(contenido)
+	return idioma, contenido
+
+	# nombreLibro = os.path.split(inputPDF.path)[-1]
+	# print idioma+": "+nombreLibro
+	# guardarContenido(rutaBaseTXTs,idioma,nombreLibro,contenido)	
+	# agregados.append(idioma + '\t' + nombreLibro)
+	# with open(os.path.join(rutaBaseTXTs,metadataFile),'a+') as ap:
+	# 	ap.writelines('\n'.join(agregados))
 
 
 

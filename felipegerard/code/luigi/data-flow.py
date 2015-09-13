@@ -62,31 +62,56 @@ class InputPDF(luigi.ExternalTask):
 execfile('functions/pdf2txt.py')
 
 class ReadText(luigi.Task):
-	pdf_dir = luigi.Parameter()
+	pdf_bookdir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	meta_file = luigi.Parameter(default='librosAgregados.tm')
 
 	def requires(self):
-		return [InputPDF(self.pdf_dir + '/' + book_name)
-			for book_name in os.listdir(self.pdf_dir)]
-			#  \
-			# for f in os.listdir(self.pdf_dir + '/' + book_name)]
+		return InputPDF(self.pdf_bookdir)
 		
 	def run(self):
-		if not os.path.exists(self.txt_dir):
-			print "Creando carpeta base para archivos txt."
-			os.makedirs(self.txt_dir)
-		if not os.path.exists(self.txt_dir + '/books'):
-			print "Creando carpeta para archivos txt."
-			os.makedirs(self.txt_dir + '/books')
-		librosNoConvertidos = []
-		extraerVolumenes(self.input(),self.txt_dir,librosNoConvertidos)
-		with open(self.txt_dir + '/' + 'librosNoConvertidos.txt', 'w') as f:
-			f.writelines(librosNoConvertidos)
+		idioma, contenido = extraerVolumen(self.input())
+		with self.output().open('w') as f:
+			f.write(contenido)
+
+		guardarMetadatos(self.input,idioma,self.txt_dir,self.meta_file)
 	
 	def output(self):
-		books = [os.path.join(self.txt_dir,'books',os.path.split(book.path)[-1]) + '.txt' for book in self.input()]
-		return [luigi.LocalTarget(book) for book in books]
+		book_name = os.path.split(self.input().path)[-1]
+		outfile = os.path.join(self.txt_dir,'books',book_name+'.txt')
+		return luigi.LocalTarget(outfile)
 
+# Meter a carpetas de idioma. Si no hacemos esto entonces no es idempotente
+import shutil
+class SortByLanguage(luigi.Task):
+	pdf_dir = luigi.Parameter()
+	txt_dir = luigi.Parameter()
+	meta_file = luigi.Parameter(default='librosAgregados.tm')
+
+	def requires(self):
+		pdf_bookdirs = [os.path.join(self.pdf_dir, b) for b in os.listdir(self.pdf_dir)]
+		return [ReadText(pdf_bookdir, self.txt_dir, self.meta_file)	for pdf_bookdir in pdf_bookdirs]
+		
+	def run(self):
+		meta = self.txt_dir + '/' + self.meta_file
+		with open(meta, 'r') as f:
+			metadatos = f.read().split('\n')
+		metadatos = {i.split('\t')[0]:i.split('\t')[1] for i in metadatos if i != ''}
+		idiomas = list(set(metadatos.values()))
+			
+		for i in idiomas:
+			print '--------------------'
+			print i
+			os.mkdir(self.txt_dir + '/' + i)
+		print metadatos
+		for k,idioma in metadatos.iteritems():
+			new = os.path.join(self.txt_dir, idioma, os.path.split(k)[-1])
+			shutil.copyfile(k, new)
+	
+	def output(self):
+		meta = self.txt_dir + '/' + self.meta_file
+		outfile = meta
+		return luigi.LocalTarget(outfile)
 
 # Limpiar texto ### FALTA
 
@@ -101,6 +126,8 @@ def clean_text(self, d):
 	    d = re.sub(' [^ ]*(.)\\1{2,}[^ ]* ', ' ', d)
 	    return d
 
+
+
 # Generar diccionario
 execfile('functions/GeneradorDiccionario.py')
 execfile('functions/GeneradorCorpus.py')
@@ -111,39 +138,96 @@ class GenerateDictionary(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
-	min_docs_per_lang = luigi.IntParameter(default=1)
+	meta_file = luigi.Parameter(default='librosAgregados.tm')
+	
 	idiomas = []
 
 	def requires(self):
-		return ReadText(self.pdf_dir, self.txt_dir)	
+		pdf_bookdirs = [os.path.join(self.pdf_dir, b) for b in os.listdir(self.pdf_dir)]
+		return [ReadText(pdf_bookdir, self.txt_dir, self.meta_file)	for pdf_bookdir in pdf_bookdirs]
 	
 	def run(self):
 		idiomas_omitidos = ['swedish']
-		idiomas = os.listdir(self.txt_dir)
-		idiomas = [idioma for idioma in idiomas \
-			if '.' not in idioma \
-				and idioma not in idiomas_omitidos]
+		meta = self.txt_dir + '/' + self.meta_file
+		with open(meta, 'r') as f:
+			metadatos = f.readlines()
+			idiomas = [i.split('\t')[0] for i in metadatos]
+			idiomas = list(set(idiomas))
+
+		with open(self.txt_dir + '/idiomas.tm', 'w') as f:
+			f.writelines('\n'.join(idiomas) + '\n')
 		self.idiomas = idiomas
 		for idioma in idiomas:
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
-			rutaTextos = os.path.join(self.txt_dir,idioma)
-			if len(os.listdir(rutaTextos)) < self.min_docs_per_lang:
-				logging.info("No hay suficientes muestras para generar el modelo. Omitiendo idioma.")
-				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma."
-				continue
-			elif not os.path.exists(self.model_dir):
-				print "Creando carpeta base para modelos."
-				os.makedirs(self.model_dir)
-			generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
+
+		# 	rutaTextos = os.path.join(self.txt_dir,idioma)
+		# 	if len(os.listdir(rutaTextos)) < self.min_docs_per_lang:
+		# 		logging.info("No hay suficientes muestras para generar el modelo. Omitiendo idioma.")
+		# 		print "No hay suficientes muestras para generar el modelo. Omitiendo idioma."
+		# 		continue
+		# 	elif not os.path.exists(self.model_dir):
+		# 		print "Creando carpeta base para modelos."
+		# 		os.makedirs(self.model_dir)
+		# 	generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
 			#generarCorpus(rutaTextos, self.model_dir, 6, idioma)
 
-		with open(self.txt_dir + '/idiomas.txt', 'w') as f:
-			f.write('\n'.join(idiomas) + '\n')
+		
 
 	def output(self):
-		return [luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in self.idiomas]
-		#return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
+		# return [luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in self.idiomas]
+		return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
+
+
+
+
+
+# Generar diccionario
+# execfile('functions/GeneradorDiccionario.py')
+# execfile('functions/GeneradorCorpus.py')
+# execfile('functions/TopicModeling.py')
+
+# class GenerateDictionary(luigi.Task):
+# 	"""docstring for CleanText"""
+# 	pdf_dir = luigi.Parameter()
+# 	txt_dir = luigi.Parameter()
+# 	model_dir = luigi.Parameter()
+# 	min_docs_per_lang = luigi.IntParameter(default=1)
+# 	idiomas = []
+
+# 	def requires(self):
+# 		return ReadText(self.pdf_dir, self.txt_dir)	
+	
+# 	def run(self):
+# 		idiomas_omitidos = ['swedish']
+# 		idiomas = os.listdir(self.txt_dir)
+# 		idiomas = [idioma for idioma in idiomas \
+# 			if '.' not in idioma \
+# 				and idioma not in idiomas_omitidos]
+# 		self.idiomas = idiomas
+# 		for idioma in idiomas:
+# 			print '=========================='
+# 			print 'Generando diccionario de ' + idioma
+# 			rutaTextos = os.path.join(self.txt_dir,idioma)
+# 			if len(os.listdir(rutaTextos)) < self.min_docs_per_lang:
+# 				logging.info("No hay suficientes muestras para generar el modelo. Omitiendo idioma.")
+# 				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma."
+# 				continue
+# 			elif not os.path.exists(self.model_dir):
+# 				print "Creando carpeta base para modelos."
+# 				os.makedirs(self.model_dir)
+# 			generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
+# 			#generarCorpus(rutaTextos, self.model_dir, 6, idioma)
+
+# 		with open(self.txt_dir + '/idiomas.txt', 'w') as f:
+# 			f.write('\n'.join(idiomas) + '\n')
+
+# 	def output(self):
+# 		return [luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in self.idiomas]
+# 		#return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
+
+
+
 
 # Corpus
 class GenerateCorpus(luigi.Task):
