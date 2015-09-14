@@ -66,7 +66,6 @@ def convertirVolumenes(rutaVolumenes):
 		except Exception:
 			logging.info("ERROR al convertir el volumen "+rutaVolumen)
 			print "ERROR al convertir el volumen "+rutaVolumen
-
 	return txt
 
 def agregarARegistro(rutaBaseTXTs,rutaBasePDF):
@@ -133,27 +132,19 @@ def extraerVolumen(inputPDF):
 
 
 def calcularValoresDeIdioma(contenido):
-
 	languages_ratios = {}
-
 	tokens = wordpunct_tokenize(contenido)
 	words = [word.lower() for word in tokens]
-
 	for language in stopwords.fileids():
 		stopwords_set = set(stopwords.words(language))
 		words_set = set(words)
 		common_elements = words_set.intersection(stopwords_set)
-
 		languages_ratios[language] = len(common_elements)
-
 	return languages_ratios
 
 def detectarIdioma(contenido):
-
 	valores = calcularValoresDeIdioma(contenido)
-
 	idioma = max(valores, key=valores.get)
-
 	return idioma
 
 # def main(args):	

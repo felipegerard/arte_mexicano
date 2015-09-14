@@ -19,3 +19,4 @@ $ pip install pdfminer
 
 ## To do
 + Paralelizar. Por ejemplo por idioma
++ Que no truene al agregar un doc en un idioma nuevo después de haber procesado otros.

@@ -8,72 +8,28 @@ import inspect
 import re
 import pickle
 import unicodedata
-from gensim import corpora, models, similarities
+#from gensim import corpora, models, similarities
 
-# ----------------------------------------------------------------
-# Funciones y clases adicionales
+import shutil
+from pprint import pprint
 
-# Quitar caracteres con acentos
-def remove_accents(input_str):
-    if type(input_str) is not unicode:
-        input_str = unicode(input_str, 'utf-8')
-    nkfd_form = unicodedata.normalize('NFKD', input_str)
-    return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
+# execfile('functions/TopicModeling.py')
+# import time, datetime
 
-# Iterar sobre un corpus
-class CorpusIterator(object):
-    def __init__(self, dir):
-        '''dir debe contener los documentos limpios'''
-        self.dir = dir
-        self.dir_list = os.listdir(self.dir)
-    
-    def __iter__(self):
-        for doc in self.dir_list:
-            f = open(self.dir + '/' + doc)
-            d = f.read() #.decode('utf-8')
-            f.close()
-            yield d
+execfile('functions/helper_functions.py')
+
 
 # ----------------------------------------------------------------
 # Data Flow
 
-# Imports UNAM
-try:
-	from cStringIO import StringIO
-except:
-	from StringIO import StringIO
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfpage import PDFPage
-from nltk import wordpunct_tokenize
-from nltk.corpus import stopwords
 
-
-
-# Input PDF
+# Input PDF directory
 class InputPDF(luigi.ExternalTask):
 	filename = luigi.Parameter()
 	def output(self):
 		return luigi.LocalTarget(self.filename)
 
-
-# Limpiar texto ### FALTA
-
-def clean_text(self, d):
-	    '''d debe ser un string'''
-	    d = remove_accents(d)
-	    d = re.sub('\n', ' ', d)
-	    d = d.lower()
-	    d = re.sub('[^a-z0-9 ]', ' ', d)
-	    d = re.sub(' +', ' ', d)
-	    d = re.sub(' ([^ ]{1,3} )+', ' ', d, )
-	    d = re.sub(' [^ ]*(.)\\1{2,}[^ ]* ', ' ', d)
-	    return d
-
 # Input book
-execfile('functions/pdf2txt.py')
-
 class ReadText(luigi.Task):
 	pdf_bookdir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
@@ -95,8 +51,6 @@ class ReadText(luigi.Task):
 		return luigi.LocalTarget(outfile)
 
 # Meter a carpetas de idioma. Si no hacemos esto entonces no es idempotente
-import shutil
-from pprint import pprint
 class SortByLanguage(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
@@ -106,6 +60,10 @@ class SortByLanguage(luigi.Task):
 	def requires(self):
 		pdf_bookdirs = [os.path.join(self.pdf_dir, b) for b in os.listdir(self.pdf_dir)]
 		return [ReadText(pdf_bookdir, self.txt_dir, self.meta_file)	for pdf_bookdir in pdf_bookdirs]
+
+	def output(self):
+		outfile = os.path.join(self.txt_dir, self.lang_file)
+		return luigi.LocalTarget(outfile)
 		
 	def run(self):
 		# Leer archivo de metadatos generado
@@ -133,17 +91,10 @@ class SortByLanguage(luigi.Task):
 		with self.output().open('w') as f:
 			f.write('\n'.join(idiomas))
 	
-	def output(self):
-		outfile = os.path.join(self.txt_dir, self.lang_file)
-		return luigi.LocalTarget(outfile)
 
 
 
 # Generar diccionario
-execfile('functions/GeneradorDiccionario.py')
-execfile('functions/GeneradorCorpus.py')
-execfile('functions/TopicModeling.py')
-import time, datetime
 
 class GenerateDictionary(luigi.Task):
 	"""docstring for CleanText"""
@@ -152,11 +103,10 @@ class GenerateDictionary(luigi.Task):
 	model_dir = luigi.Parameter()
 	# ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H:%M:%S')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm')
+	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	languages = luigi.Parameter()
 	min_docs_per_lang = luigi.IntParameter(default=1)
 	
-	idiomas = []
-
 	def requires(self):
 		return SortByLanguage(self.pdf_dir,
 							  self.txt_dir,
@@ -164,19 +114,26 @@ class GenerateDictionary(luigi.Task):
 							  self.lang_file)
 
 	def output(self):
-		return [luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in self.idiomas]
+		idiomas_permitidos = ['spanish','english','french','italian','german']
+		idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
+		return [luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in idiomas]
 		# return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
 
 	def run(self):
-		idiomas_omitidos = ['swedish']
-		lang_file = os.path.join(self.txt_dir, self.lang_file)
-		with open(lang_file, 'r') as f:
-			idiomas = f.read().split('\n')
-			idiomas = [i for i in idiomas if i not in idiomas_omitidos]
-			print '======================='
-			print idiomas
+		print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+		print 'GenerateDictionary'
+		print self.languages #.split(',')
 
-		self.idiomas = idiomas
+		
+		# lang_file = os.path.join(self.txt_dir, self.lang_file)
+		# with open(lang_file, 'r') as f:
+		# 	idiomas = f.read().split('\n')
+		# 	idiomas = [i for i in idiomas if i not in idiomas_omitidos]
+		# 	print '======================='
+		# 	print idiomas
+
+		idiomas_permitidos = ['spanish','english','french','italian','german']
+		idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
 		for idioma in idiomas:
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
@@ -203,113 +160,31 @@ class GenerateCorpus(luigi.Task):
 	# ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H:%M:%S')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm')
+	languages = luigi.Parameter()
 	min_docs_per_lang = luigi.IntParameter(default=1)
-	
-	idiomas = []
 
 	def requires(self):
 		return GenerateDictionary(self.pdf_dir,
 							  	  self.txt_dir,
+							  	  self.model_dir,
 							  	  self.meta_file,
-							      self.lang_file)
+							  	  self.lang_file,
+							      self.languages,
+							      self.min_docs_per_lang)
 
 	def output(self):
-		return [luigi.LocalTarget(self.model_dir + '/corpus_' + idioma + '.mm') for idioma in self.idiomas]
+		idiomas_permitidos = ['spanish','english','french','italian','german']
+		idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
+		return [luigi.LocalTarget(self.model_dir + '/corpus_' + idioma + '.mm') for idioma in idiomas]
 
 	def run(self):
-		idiomas_omitidos = ['swedish']
-		lang_file = os.path.join(self.txt_dir, self.lang_file)
-		with open(lang_file, 'r') as f:
-			idiomas = f.read().split('\n')
-			idiomas = [i for i in idiomas if i not in idiomas_omitidos]
-			
-		self.idiomas = idiomas
+		idiomas_permitidos = ['spanish','english','french','italian','german']
+		idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
 		for idioma in idiomas:
 			print '=========================='
 			print 'Generando corpus de ' + idioma
 			rutaTextos = os.path.join(self.txt_dir,idioma)
 			generarCorpus(rutaTextos, self.model_dir, 6, idioma)
-
-	
-
-
-class Vectorize(luigi.Task):
-	"""Docstring"""
-	input_dir = luigi.Parameter()
-	clean_dir = luigi.Parameter()
-	model_dir = luigi.Parameter()
-
-	def requires(self):
-		return GenerateDictionary(self.input_dir, self.clean_dir, self.model_dir)
-
-	def run(self):
-		with self.input().open('r') as f:
-			dictionary = pickle.load(f)
-		print dictionary
-		corpus_iterator = CorpusIterator(self.clean_dir)
-		corpus_bow = [dictionary.doc2bow(d.split()) for d in corpus_iterator]
-		corpora.MmCorpus.serialize(self.model_dir + '/' + 'corpus.mmkt', corpus_bow)
-
-	def output(self):
-		return luigi.LocalTarget(self.model_dir + '/' + 'corpus.mmkt')
-
-class TransformTFIDF(luigi.Task):
-	"""Docstring"""
-	input_dir = luigi.Parameter()
-	clean_dir = luigi.Parameter()
-	model_dir = luigi.Parameter()
-
-	def requires(self):
-		return Vectorize(self.input_dir, self.clean_dir, self.model_dir)
-
-	def run(self):
-		corpus = corpora.MmCorpus(self.model_dir + '/' + 'corpus.mmkt')
-		tfidf_transform = models.TfidfModel(corpus)
-		with self.output().open('w') as f:
-			pickle.dump(tfidf_transform, f)
-
-	def output(self):
-		return luigi.LocalTarget(self.model_dir + '/' + 'tfidf_transform.pickle')
-
-class DocumentSimilarities(luigi.Task):
-	"""Docstring"""
-	input_dir = luigi.Parameter()
-	clean_dir = luigi.Parameter()
-	model_dir = luigi.Parameter()
-	num_sim_docs = luigi.IntParameter(default=5)
-
-	def requires(self):
-		return TransformTFIDF(self.input_dir, self.clean_dir, self.model_dir)
-
-	def run(self):
-		print 'Loading Transform'
-		print '==========================='
-		with self.input().open('r') as f:
-			tfidf_transform = pickle.load(f)
-		print 'Loading Corpus'
-		print '==========================='
-		corpus = corpora.MmCorpus(self.model_dir + '/' + 'corpus.mmkt')
-		print 'Creating Index'
-		print '==========================='
-		index = similarities.MatrixSimilarity(tfidf_transform[corpus])
-		#index.save(self.model_dir + '/' + 'index.pickle')
-
-		print 'Calculating Similarities'
-		print '==========================='
-		sims = []
-		i = 1
-		for doc in corpus:
-			i = i + 1
-			print i
-			doc_tfidf = tfidf_transform[doc]
-			sim = sorted(enumerate(index[doc_tfidf]), key = lambda item: item[1], reverse=True)
-			sims.append(sim[:self.num_sim_docs])
-			#print sims[:self.num_sim_docs]
-		with self.output().open('w') as f:
-			pickle.dump(sims, f)
-
-	def output(self):
-		return luigi.LocalTarget(self.model_dir + '/' + 'similarities.pickle')
 
 
 if __name__ == '__main__':
