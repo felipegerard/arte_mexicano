@@ -39,10 +39,12 @@ class ReadText(luigi.Task):
 		return InputPDF(self.pdf_bookdir)
 		
 	def run(self):
+		# Extraer textos
 		idioma, contenido = extraerVolumen(self.input())
 		with self.output().open('w') as f:
 			f.write(contenido)
 
+		# Guardar los metadatos
 		guardarMetadatos(self.input,idioma,self.txt_dir,self.meta_file)
 	
 	def output(self):
@@ -77,7 +79,8 @@ class SortByLanguage(luigi.Task):
 		for i in idiomas:
 			print '--------------------'
 			print 'Creando carpeta de ', i
-			os.mkdir(self.txt_dir + '/' + i)
+			if not os.path.exists(self.txt_dir + '/' + i):
+				os.mkdir(self.txt_dir + '/' + i)
 
 		# Mover archivos a sus carpetas
 		print '---------------------------'
@@ -124,24 +127,21 @@ class GenerateDictionary(luigi.Task):
 		print 'GenerateDictionary'
 		print self.languages #.split(',')
 
-		
-		# lang_file = os.path.join(self.txt_dir, self.lang_file)
-		# with open(lang_file, 'r') as f:
-		# 	idiomas = f.read().split('\n')
-		# 	idiomas = [i for i in idiomas if i not in idiomas_omitidos]
-		# 	print '======================='
-		# 	print idiomas
-
 		idiomas_permitidos = ['spanish','english','french','italian','german']
 		idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
+
+		# Generar diccionario por idioma
 		for idioma in idiomas:
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
 
 			rutaTextos = os.path.join(self.txt_dir,idioma)
-			if len(os.listdir(rutaTextos)) < self.min_docs_per_lang:
-				logging.info("No hay suficientes muestras para generar el modelo. Omitiendo idioma.")
-				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma."
+			if os.path.exists(rutaTextos):
+				ndocs = len(os.listdir(rutaTextos)) 
+			else:
+				ndocs = 0
+			if ndocs < self.min_docs_per_lang:
+				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma" + idioma
 				continue
 			elif not os.path.exists(self.model_dir):
 				print "Creando carpeta base para modelos."
@@ -180,6 +180,7 @@ class GenerateCorpus(luigi.Task):
 	def run(self):
 		idiomas_permitidos = ['spanish','english','french','italian','german']
 		idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
+		# Generar corpus por idioma
 		for idioma in idiomas:
 			print '=========================='
 			print 'Generando corpus de ' + idioma

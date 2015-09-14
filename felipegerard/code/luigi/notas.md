@@ -13,6 +13,7 @@ $ pip install pdfminer
 + ruta_fuente_pdfs (podría ser ruta_general/pdf, aunque no tiene que ser)
 + ruta_general/txt/
     * librosAgregados.tm
+    * idiomas.tm
     * spanish
     * english
     * ...
