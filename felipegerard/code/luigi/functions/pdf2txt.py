@@ -83,9 +83,8 @@ def agregarARegistro(rutaBaseTXTs,rutaBasePDF):
 #FELIPE#
 def guardarMetadatos(inp,idioma,txt_dir,meta_file):
 	book_name = os.path.split(inp().path)[-1]
-	outfile = os.path.join(txt_dir,'books',book_name+'.txt')
-	# print '======================'
-	# print idioma + '\t'+ outfile
+	#outfile = os.path.join(txt_dir,'books',book_name+'.txt')
+	outfile = book_name
 	meta = txt_dir + '/' + meta_file
 	flag = True
 	if os.path.exists(meta):
