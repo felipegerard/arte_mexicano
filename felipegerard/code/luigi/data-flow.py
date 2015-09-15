@@ -92,7 +92,6 @@ class DetectLanguages(luigi.Task):
 			f.write('\n'.join(idiomas))
 	
 
-
 # Generar diccionario
 class GenerateDictionary(luigi.Task):
 	"""docstring for CleanText"""
@@ -100,21 +99,26 @@ class GenerateDictionary(luigi.Task):
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	# ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H:%M:%S')
+	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
 	languages = luigi.Parameter()
 	min_docs_per_lang = luigi.IntParameter(default=1)
 	
 	def requires(self):
-		return SortByLanguage(self.pdf_dir,
+		return DetectLanguages(self.pdf_dir,
 							  self.txt_dir,
+							  self.meta_dir,
 							  self.meta_file,
 							  self.lang_file)
 
 	def output(self):
 		idiomas_permitidos = ['spanish','english','french','italian','german']
-		idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
-		return {idioma:luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in idiomas}
+		idiomas = self.languages.split(',')
+		idiomas = [i for i in idiomas if i in idiomas_permitidos]
+		output = {'langs':{idioma:luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in idiomas},
+				'files':self.input()['files']}
+		return output
 		# return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
 
 	def run(self):
@@ -126,7 +130,7 @@ class GenerateDictionary(luigi.Task):
 		# idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
 
 		# Generar diccionario por idioma
-		for idioma in self.output().keys():
+		for idioma in self.output()['langs'].keys():
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
 
@@ -153,6 +157,7 @@ class GenerateCorpus(luigi.Task):
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	# ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H:%M:%S')
+	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm')
 	languages = luigi.Parameter()
@@ -162,19 +167,18 @@ class GenerateCorpus(luigi.Task):
 		return GenerateDictionary(self.pdf_dir,
 							  	  self.txt_dir,
 							  	  self.model_dir,
+							  	  self.meta_dir,
 							  	  self.meta_file,
 							  	  self.lang_file,
 							      self.languages,
 							      self.min_docs_per_lang)
 
 	def output(self):
-		return {idioma:luigi.LocalTarget(self.model_dir + '/corpus_' + idioma + '.mm') for idioma in self.input().iterkeys()}
+		return {'langs':{idioma:luigi.LocalTarget(self.model_dir + '/corpus_' + idioma + '.mm') for idioma in self.input()['langs'].iterkeys()},
+				'files':self.input()['files']}
 
 	def run(self):
-		# idiomas_permitidos = ['spanish','english','french','italian','german']
-		# idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
-		# Generar corpus por idioma
-		for idioma in self.input().iterkeys():
+		for idioma in self.input()['langs'].iterkeys():
 			print '=========================='
 			print 'Generando corpus de ' + idioma
 			rutaTextos = os.path.join(self.txt_dir,idioma)
@@ -202,6 +206,7 @@ class TrainLDA(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
+	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm')
 	languages = luigi.Parameter()
@@ -212,6 +217,7 @@ class TrainLDA(luigi.Task):
 		return {'dict':GenerateDictionary(self.pdf_dir,
 							  	  self.txt_dir,
 							  	  self.model_dir,
+							  	  self.meta_dir,
 							  	  self.meta_file,
 							  	  self.lang_file,
 							      self.languages,
@@ -219,19 +225,20 @@ class TrainLDA(luigi.Task):
 				'corp':GenerateCorpus(self.pdf_dir,
 							  	  self.txt_dir,
 							  	  self.model_dir,
+							  	  self.meta_dir,
 							  	  self.meta_file,
 							  	  self.lang_file,
 							      self.languages,
 							      self.min_docs_per_lang)}
 
 	def output(self):
-		return {idioma:luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.lda' % (idioma, self.n_topics)) for idioma in self.input()['corp'].iterkeys()}
+		return {'langs':{idioma:luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.lda' % (idioma, self.n_topics)) for idioma in self.input()['corp']['langs'].iterkeys()},
+				'files':self.input()['corp']['files']}
 		# return luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.pickle' % (self.date_interval, self.n_topics))
 
 	def run(self):
-
 		# for d, c in zip(input()['dict'], input()['corp'])
-		for idioma in self.input()['corp'].iterkeys():
+		for idioma in self.input()['corp']['langs'].iterkeys():
 			print '=============================='
 			print os.path.join(self.model_dir,'diccionario_'+idioma+'.dict')
 			print os.path.join(self.model_dir,'corpus_'+idioma+'.mm')
@@ -244,7 +251,7 @@ class TrainLDA(luigi.Task):
 				lda = LdaModel(corpus, id2word=dicc, num_topics=self.n_topics, update_every=self.update_e, chunksize=self.chunk_size, passes=self.n_passes)
 			else:  
 				lda = LdaModel(corpus, id2word=dicc, num_topics=self.n_topics)
-			lda.save(self.output()[idioma].path)
+			lda.save(self.output()['langs'][idioma].path)
 				
 	
 
