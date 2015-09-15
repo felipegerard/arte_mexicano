@@ -13,6 +13,7 @@ import unicodedata
 import shutil
 from pprint import pprint
 
+
 # execfile('functions/TopicModeling.py')
 # import time, datetime
 
@@ -48,19 +49,26 @@ class ReadText(luigi.Task):
 	def run(self):
 		# Extraer textos
 		idioma, contenido = extraerVolumen(self.input())
+
+		# Limpiar texto
+		contenido = clean_text(contenido)
+		contenido = remove_stopwords(contenido, idioma)
+
+		# Crear carpeta del idioma
 		if not os.path.exists(self.txt_dir + '/' + idioma):
 			os.mkdir(self.txt_dir + '/' + idioma)
 			print '--------------------'
 			print 'Creando carpeta de ' + idioma
 
+		# Guardar contenido
 		book_path = os.path.join(self.txt_dir,idioma,self.book_name+'.txt')
 		with open(book_path, 'w') as f:
 			f.write(contenido)
 		print self.book_name + ' --> ' + idioma
-		with self.output().open('w') as f:
-			f.write(idioma)
 
 		# Guardar los metadatos
+		with self.output().open('w') as f:
+			f.write(idioma)
 		guardarMetadatos(self.book_name,idioma,self.txt_dir,self.meta_file)
 	
 
@@ -126,9 +134,6 @@ class GenerateDictionary(luigi.Task):
 		print 'GenerateDictionary'
 		print self.languages #.split(',')
 
-		# idiomas_permitidos = ['spanish','english','french','italian','german']
-		# idiomas = [i for i in self.languages.split(',') if i in idiomas_permitidos]
-
 		# Generar diccionario por idioma
 		for idioma in self.output()['langs'].keys():
 			print '=========================='
@@ -146,8 +151,7 @@ class GenerateDictionary(luigi.Task):
 				print "Creando carpeta base para modelos."
 				os.makedirs(self.model_dir)
 			generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
-			#generarCorpus(rutaTextos, self.model_dir, 6, idioma)
-
+			
 
 
 # Corpus
@@ -178,6 +182,7 @@ class GenerateCorpus(luigi.Task):
 				'files':self.input()['files']}
 
 	def run(self):
+		# Generar corpus por idioma
 		for idioma in self.input()['langs'].iterkeys():
 			print '=========================='
 			print 'Generando corpus de ' + idioma
@@ -200,10 +205,7 @@ class TrainLDA(luigi.Task):
 	chunk_size = luigi.IntParameter(default=100)
 	update_e = luigi.IntParameter(default = 0)
 	n_passes = luigi.IntParameter(default=10) #numero de pasadas al corpus
-	# input_dir = luigi.Parameter()
-	# clean_dir = luigi.Parameter()
-	# model_dir = luigi.Parameter()
-
+	
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
@@ -247,7 +249,6 @@ class TrainLDA(luigi.Task):
 						},
 					'files':self.input()['corp']['files']
 				}
-		# return luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.pickle' % (self.date_interval, self.n_topics))
 
 	def run(self):
 		for idioma in self.output()['langs'].iterkeys():
@@ -256,14 +257,18 @@ class TrainLDA(luigi.Task):
 			print '=============================='
 			print 'Corriendo LDA de ' + idioma
 			print '=============================='
+
+			# Cargar diccionario y corpus
 			dicc = corpora.Dictionary.load(dicc_path)
 			corpus = corpora.MmCorpus(corp_path)
+
+			# Correr LDA del idioma para cada numero de topicos
 			for n_topics in self.output()['langs'][idioma].iterkeys():
 				print 'Número de tópicos: ' + str(n_topics)
 				if self.by_chunks:
 					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, update_every=self.update_e, chunksize=self.chunk_size, passes=self.n_passes)
 				else:  
-					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics)
+					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, passes=1)
 				lda.save(self.output()['langs'][idioma][n_topics].path)
 					
 		
