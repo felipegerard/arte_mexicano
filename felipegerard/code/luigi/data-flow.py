@@ -41,8 +41,10 @@ class ReadText(luigi.Task):
 	def run(self):
 		# Extraer textos
 		idioma, contenido = extraerVolumen(self.input())
-		with self.output().open('w') as f:
+		with self.output()['book'].open('w') as f:
 			f.write(contenido)
+		with self.output()['meta'].open('w') as f:
+			f.write(idioma)
 
 		# Guardar los metadatos
 		guardarMetadatos(self.input,idioma,self.txt_dir,self.meta_file)
@@ -50,7 +52,9 @@ class ReadText(luigi.Task):
 	def output(self):
 		book_name = os.path.split(self.input().path)[-1]
 		outfile = os.path.join(self.txt_dir,'books',book_name+'.txt')
-		return luigi.LocalTarget(outfile)
+		metafile = os.path.join(self.txt_dir,'meta',book_name+'.meta')
+		return {'book':luigi.LocalTarget(outfile),
+				'meta':luigi.LocalTarget(meta)}
 
 # Meter a carpetas de idioma. Si no hacemos esto entonces no es idempotente
 class SortByLanguage(luigi.Task):
@@ -61,11 +65,13 @@ class SortByLanguage(luigi.Task):
 
 	def requires(self):
 		pdf_bookdirs = [os.path.join(self.pdf_dir, b) for b in os.listdir(self.pdf_dir)]
-		return [ReadText(pdf_bookdir, self.txt_dir, self.meta_file)	for pdf_bookdir in pdf_bookdirs]
+		return {pdf_bookdir:ReadText(pdf_bookdir, self.txt_dir, self.meta_file)	for pdf_bookdir in pdf_bookdirs}
 
 	def output(self):
 		outfile = os.path.join(self.txt_dir, self.lang_file)
-		return luigi.LocalTarget(outfile)
+		metapath = os.path.join(self.txt_dir,'meta')
+		return {'lang_file':luigi.LocalTarget(outfile),
+				'books':[luigi.LocalTarget(metapath+'/'+os.path.split(book_name)[-1]+'.meta') for book_name in self.input().iterkeys()]}
 		
 	def run(self):
 		# Leer archivo de metadatos generado
