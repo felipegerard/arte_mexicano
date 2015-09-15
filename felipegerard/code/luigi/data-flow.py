@@ -31,73 +31,64 @@ class InputPDF(luigi.ExternalTask):
 
 # Input book
 class ReadText(luigi.Task):
-	pdf_bookdir = luigi.Parameter()
+	book_name = luigi.Parameter()
+	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 
 	def requires(self):
-		return InputPDF(self.pdf_bookdir)
+		pdf_bookdir = os.path.join(self.pdf_dir, self.book_name)
+		return InputPDF(pdf_bookdir)
+
+	def output(self):
+		metafile = os.path.join(self.txt_dir,'meta',self.book_name+'.meta')
+		return luigi.LocalTarget(metafile)
 		
 	def run(self):
 		# Extraer textos
 		idioma, contenido = extraerVolumen(self.input())
-		with self.output()['book'].open('w') as f:
+		if not os.path.exists(self.txt_dir + '/' + idioma):
+			os.mkdir(self.txt_dir + '/' + idioma)
+			print '--------------------'
+			print 'Creando carpeta de ' + idioma
+
+		book_path = os.path.join(self.txt_dir,idioma,self.book_name+'.txt')
+		with open(book_path, 'w') as f:
 			f.write(contenido)
-		with self.output()['meta'].open('w') as f:
+		print self.book_name + ' --> ' + idioma
+		with self.output().open('w') as f:
 			f.write(idioma)
 
 		# Guardar los metadatos
-		guardarMetadatos(self.input,idioma,self.txt_dir,self.meta_file)
+		guardarMetadatos(self.book_name,idioma,self.txt_dir,self.meta_file)
 	
-	def output(self):
-		book_name = os.path.split(self.input().path)[-1]
-		outfile = os.path.join(self.txt_dir,'books',book_name+'.txt')
-		metafile = os.path.join(self.txt_dir,'meta',book_name+'.meta')
-		return {'book':luigi.LocalTarget(outfile),
-				'meta':luigi.LocalTarget(meta)}
 
 # Meter a carpetas de idioma. Si no hacemos esto entonces no es idempotente
-class SortByLanguage(luigi.Task):
+class DetectLanguages(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm')
 
 	def requires(self):
-		pdf_bookdirs = [os.path.join(self.pdf_dir, b) for b in os.listdir(self.pdf_dir)]
-		return {pdf_bookdir:ReadText(pdf_bookdir, self.txt_dir, self.meta_file)	for pdf_bookdir in pdf_bookdirs}
+		return [ReadText(book_name, self.pdf_dir, self.txt_dir, self.meta_dir, self.meta_file) for book_name in os.listdir(self.pdf_dir)]
 
 	def output(self):
-		outfile = os.path.join(self.txt_dir, self.lang_file)
-		metapath = os.path.join(self.txt_dir,'meta')
-		return {'lang_file':luigi.LocalTarget(outfile),
-				'books':[luigi.LocalTarget(metapath+'/'+os.path.split(book_name)[-1]+'.meta') for book_name in self.input().iterkeys()]}
+		metapath = os.path.join(self.txt_dir,self.lang_file)
+		return {'langs':luigi.LocalTarget(metapath),
+				'files':self.input()}
 		
 	def run(self):
-		# Leer archivo de metadatos generado
-		meta = self.txt_dir + '/' + self.meta_file
-		with open(meta, 'r') as f:
-			metadatos = f.read().split('\n')
-		metadatos = {i.split('\t')[0]:i.split('\t')[1] for i in metadatos if i != ''}
-		idiomas = list(set(metadatos.values()))
-		
-		# Crear carpetas de idioma
-		for i in idiomas:
-			print '--------------------'
-			print 'Creando carpeta de ', i
-			if not os.path.exists(self.txt_dir + '/' + i):
-				os.mkdir(self.txt_dir + '/' + i)
-
-		# Mover archivos a sus carpetas
-		print '---------------------------'
-		for k,idioma in metadatos.iteritems():
-			print k, ' --> ', idioma
-			old = os.path.join(self.txt_dir, 'books', k + '.txt')
-			new = os.path.join(self.txt_dir, idioma, k + '.txt')
-			shutil.copyfile(old, new)
-
+		idiomas = set()
+		for p in os.listdir(os.path.join(self.txt_dir,self.meta_dir)):
+			p = os.path.join(self.txt_dir, self.meta_dir, p)
+			with open(p, 'r') as f:
+				idiomas.add(f.read())
+		idiomas = list(idiomas)
 		# Metadatos de salida
-		with self.output().open('w') as f:
+		with self.output()['langs'].open('w') as f:
 			f.write('\n'.join(idiomas))
 	
 

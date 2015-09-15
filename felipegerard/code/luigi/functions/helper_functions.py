@@ -96,9 +96,7 @@ def extraerVolumen(inputPDF):
     return idioma, contenido
 
 # Guardar metadatos
-def guardarMetadatos(inp,idioma,txt_dir,meta_file):
-    book_name = os.path.split(inp().path)[-1]
-    #outfile = os.path.join(txt_dir,'books',book_name+'.txt')
+def guardarMetadatos(book_name,idioma,txt_dir,meta_file):
     outfile = book_name
     meta = txt_dir + '/' + meta_file
     flag = True
