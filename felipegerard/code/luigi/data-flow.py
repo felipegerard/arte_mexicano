@@ -195,7 +195,8 @@ class TrainLDA(luigi.Task):
 	idioma sin las stopwords
 	viene del proceso de VECTORIZE"""
 	# date_interval = luigi.DateIntervalParameter()
-	n_topics = luigi.IntParameter(default=30) #numero de topicos
+	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
+	by_chunks = luigi.BoolParameter(default=False)
 	chunk_size = luigi.IntParameter(default=100)
 	update_e = luigi.IntParameter(default = 0)
 	n_passes = luigi.IntParameter(default=10) #numero de pasadas al corpus
@@ -232,28 +233,40 @@ class TrainLDA(luigi.Task):
 							      self.min_docs_per_lang)}
 
 	def output(self):
-		return {'langs':{idioma:luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.lda' % (idioma, self.n_topics)) for idioma in self.input()['corp']['langs'].iterkeys()},
-				'files':self.input()['corp']['files']}
+		topic_range = self.topic_range.split(',')
+		topic_range = [int(i) for i in topic_range]
+		topic_range = range(topic_range[0],topic_range[1],topic_range[2])
+		return {
+					'langs':{
+							idioma:
+								{
+									n_topics:luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.lda' % (idioma, n_topics))
+									for n_topics in topic_range
+								}
+							for idioma in self.input()['corp']['langs'].iterkeys()
+						},
+					'files':self.input()['corp']['files']
+				}
 		# return luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.pickle' % (self.date_interval, self.n_topics))
 
 	def run(self):
-		# for d, c in zip(input()['dict'], input()['corp'])
-		for idioma in self.input()['corp']['langs'].iterkeys():
+		for idioma in self.output()['langs'].iterkeys():
+			dicc_path = self.input()['dict']['langs'][idioma].path
+			corp_path = self.input()['corp']['langs'][idioma].path
 			print '=============================='
-			print os.path.join(self.model_dir,'diccionario_'+idioma+'.dict')
-			print os.path.join(self.model_dir,'corpus_'+idioma+'.mm')
+			print 'Corriendo LDA de ' + idioma
 			print '=============================='
-			dicc_path = os.path.join(self.model_dir,'diccionario_'+idioma+'.dict')
-			corp_path = os.path.join(self.model_dir,'corpus_'+idioma+'.mm')
 			dicc = corpora.Dictionary.load(dicc_path)
 			corpus = corpora.MmCorpus(corp_path)
-			if len(corpus) >= 1000:
-				lda = LdaModel(corpus, id2word=dicc, num_topics=self.n_topics, update_every=self.update_e, chunksize=self.chunk_size, passes=self.n_passes)
-			else:  
-				lda = LdaModel(corpus, id2word=dicc, num_topics=self.n_topics)
-			lda.save(self.output()['langs'][idioma].path)
-				
-	
+			for n_topics in self.output()['langs'][idioma].iterkeys():
+				print 'Número de tópicos: ' + str(n_topics)
+				if self.by_chunks:
+					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, update_every=self.update_e, chunksize=self.chunk_size, passes=self.n_passes)
+				else:  
+					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics)
+				lda.save(self.output()['langs'][idioma][n_topics].path)
+					
+		
 
 if __name__ == '__main__':
 	luigi.run()
