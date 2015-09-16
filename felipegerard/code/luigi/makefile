@@ -1,5 +1,5 @@
 clean:
 	rm -r test/txt/*
 	rm -r test/models/*
-	rm -r test/pdf/.DS_Store
+	rm -r test/results/*
 	find . -name '*.DS_Store' -type f -delete

@@ -190,7 +190,7 @@ class GenerateCorpus(luigi.Task):
 			generarCorpus(rutaTextos, self.model_dir, 6, idioma)
 
 
-# LDA
+# Entrenamiento LDA
 from gensim import corpora
 from gensim.models.ldamodel import LdaModel
 import pickle
@@ -270,7 +270,94 @@ class TrainLDA(luigi.Task):
 				else:  
 					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, passes=1)
 				lda.save(self.output()['langs'][idioma][n_topics].path)
-					
+
+
+class PredictLDA(luigi.Task):
+	"""Necesita el modelo LDA"""
+	#variables de predictLDA
+	res_dir = luigi.Parameter()
+
+	#variables de LDA
+	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
+	by_chunks = luigi.BoolParameter(default=False)
+	chunk_size = luigi.IntParameter(default=100)
+	update_e = luigi.IntParameter(default = 0)
+	n_passes = luigi.IntParameter(default=10) #numero de pasadas al corpus
+
+	#variables de corpus
+	pdf_dir = luigi.Parameter()
+	txt_dir = luigi.Parameter()
+	model_dir = luigi.Parameter()
+	meta_dir = luigi.Parameter(default='meta')
+	meta_file = luigi.Parameter(default='librosAgregados.tm')
+	lang_file = luigi.Parameter(default='idiomas.tm')
+	languages = luigi.Parameter()
+	min_docs_per_lang = luigi.IntParameter(default=1)
+
+	def requires(self):
+	    return {'lda':TrainLDA(self.topic_range,
+	                    self.by_chunks,
+	                    self.chunk_size,
+	                    self.update_e,
+	                    self.n_passes,
+	                    self.pdf_dir,
+	                    self.txt_dir,
+	                    self.model_dir,
+	                    self.meta_dir,
+	                    self.meta_file,
+	                    self.lang_file,
+	                    self.languages,
+	                    self.min_docs_per_lang),
+	        'corp':GenerateCorpus(self.pdf_dir,
+	                    self.txt_dir,
+	                    self.model_dir,
+	                    self.meta_dir,
+	                    self.meta_file,
+	                    self.lang_file,
+	                    self.languages,
+	                    self.min_docs_per_lang)}
+
+	def output(self):
+	    # return {"doc_topics" : luigi.LocalTarget(os.path.join(self.res_dir, self.topic_results)),
+	    #         "topics" : luigi.LocalTarget(os.path.join(self.res_dir, self.topics))
+	    #         }
+	    topic_range = self.topic_range.split(',')
+	    topic_range = [int(i) for i in topic_range]
+	    topic_range = range(topic_range[0],topic_range[1],topic_range[2])
+
+	    return {
+	            idioma:
+	              {
+	                n_topics:
+	                  {
+	                    "doc_topics" : luigi.LocalTarget(os.path.join(self.res_dir, 'topic_results_'+idioma+'_'+str(n_topics)+'.pickle')),
+	                    "topics" : luigi.LocalTarget(os.path.join(self.res_dir, 'topics_'+idioma+'_'+str(n_topics)+'.pickle'))
+	                  }
+	                for n_topics in topic_range
+	              }
+	            for idioma in self.input()['corp']['langs'].iterkeys()
+	          }
+
+	def run(self):
+	    if not os.path.exists(self.res_dir):
+			print 'Creando carpeta para resultados NIGGANIGGANIGAGGAGA...'
+			os.mkdir(self.res_dir)
+	    for idioma, modelos in self.input()['lda']['langs'].iteritems():
+	     	corp_path = self.input()['corp']['langs'][idioma].path
+	     	corpus = corpora.MmCorpus(corp_path)
+	     	for n_topics, modelo in modelos.iteritems():
+	        	model_path = modelo.path
+	        	model = LdaModel.load(model_path)
+	        	classification = []
+	        	for doc in corpus:
+	          		topic = model.get_document_topics(doc)
+	          		classification.append(topic)
+        		print '--------------------------------------'
+        		print 'Clasificando textos en ' + idioma + ' con ' + str(n_topics) + ' tópicos'
+		        with self.output()[idioma][n_topics]['doc_topics'].open('w') as f:
+		        	pickle.dump(classification, f)
+		        with self.output()[idioma][n_topics]['topics'].open('w') as f:
+		        	pickle.dump(model.print_topics(len(corpus),5), f) # el 5 es un parámetro que se puede editar (numero de palabras del tópico a mostrar)	
 		
 
 if __name__ == '__main__':
