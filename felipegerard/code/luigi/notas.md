@@ -19,5 +19,9 @@ $ pip install pdfminer
     * ...
 
 ## To do
++ Filtrar páginas con imágenes
++ Guardar txts crudos? Por página?
++ LSA (requiere stopwords?)
++ Similitudes
++ XMLs DSpace
 + Paralelizar. Por ejemplo por idioma
-+ Que no truene al agregar un doc en un idioma nuevo después de haber procesado otros.
