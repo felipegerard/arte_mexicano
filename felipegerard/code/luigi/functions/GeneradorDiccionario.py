@@ -43,7 +43,7 @@ class GeneradorDiccionario(object):
 		self.diccionario = diccionario
 
 
-	def cargarArchivo(self, ruta_archivo,diccionario):
+	def cargarArchivo(self, ruta_archivo, diccionario):
 		ap = io.open(ruta_archivo, "r", encoding="utf8")
 		contenido = ap.read().replace("\n", " ")
 		ap.close()
@@ -59,7 +59,7 @@ class GeneradorDiccionario(object):
 		print ruta_archivo+" agregado al diccionario!"	
 
 	#FELIPE# Ahora recibe nombre de archivo de salida
-	def serializarDiccionario(self,filename):
+	def serializarDiccionario(self, filename):
 		direccion_salida = filename #os.path.join(self.carpeta_salida, filename)
 		self.diccionario.save(direccion_salida)
 		logging.info("diccionario guardado en "+direccion_salida)

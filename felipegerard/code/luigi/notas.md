@@ -25,3 +25,6 @@ $ pip install pdfminer
 + Similitudes
 + XMLs DSpace
 + Paralelizar. Por ejemplo por idioma
+
+## OJO
++ Toman las primeras 6 letras de las palabras como tipo stemming simple.

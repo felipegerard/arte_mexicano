@@ -160,11 +160,13 @@ class GenerateDictionary(luigi.Task):
 		else:
 			kind = 'stopwords'
 		output = {
-					'langs':{
+					'langs':
+					{
 						idioma:luigi.LocalTarget(self.model_dir + '/diccionario_' + kind + '_' + idioma + '.dict')
 						for idioma in idiomas
 					},
-				'files':self.input()['files']}
+					'files':self.input()['files']
+				}
 		return output
 		# return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
 
@@ -173,12 +175,17 @@ class GenerateDictionary(luigi.Task):
 		print 'GenerateDictionary'
 		print self.languages #.split(',')
 
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
 		# Generar diccionario por idioma
 		for idioma in self.output()['langs'].keys():
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
 
-			rutaTextos = os.path.join(self.txt_dir,self.clean_level,idioma)#self.input()['clean_level'],idioma)
+			rutaTextos = os.path.join(self.txt_dir,kind,idioma)#self.input()['clean_level'],idioma)
 			print rutaTextos
 			if os.path.exists(rutaTextos):
 				ndocs = len(os.listdir(rutaTextos)) 
@@ -227,16 +234,37 @@ class GenerateCorpus(luigi.Task):
 							      min_docs_per_lang=self.min_docs_per_lang)
 
 	def output(self):
-		return {'langs':{idioma:luigi.LocalTarget(self.model_dir + '/corpus_' + idioma + '.mm') for idioma in self.input()['langs'].iterkeys()},
-				'files':self.input()['files']}
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+		return {
+					'langs':
+					{
+						idioma:luigi.LocalTarget(self.model_dir + '/corpus_' + kind + '_' + idioma + '.mm')
+						for idioma in self.input()['langs'].iterkeys()
+					},
+					'files':self.input()['files']
+				}
 
 	def run(self):
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
 		# Generar corpus por idioma
 		for idioma in self.input()['langs'].iterkeys():
 			print '=========================='
 			print 'Generando corpus de ' + idioma
-			rutaTextos = os.path.join(self.txt_dir,idioma)
-			generarCorpus(rutaTextos, self.model_dir, 6, idioma)
+			rutaTextos = os.path.join(self.txt_dir,kind,idioma)
+			
+			nombre_corpus = self.output()['langs'][idioma].path
+			ruta_diccionario = self.input()['langs'][idioma].path
+			generadorCorpus = GeneradorCorpus(rutaTextos, ruta_diccionario, self.max_word_length)
+			generadorCorpus.obtenerLibros()
+			generadorCorpus.generarCorpus()
+			generadorCorpus.serializarCorpus(nombre_corpus)
 
 
 # Entrenamiento LDA
@@ -260,38 +288,52 @@ class TrainLDA(luigi.Task):
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm')
+	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
+	max_word_length = luigi.IntParameter(default=6)
 	min_docs_per_lang = luigi.IntParameter(default=1)
 
 
 	def requires(self):
-		return {'dict':GenerateDictionary(self.pdf_dir,
-							  	  self.txt_dir,
-							  	  self.model_dir,
-							  	  self.meta_dir,
-							  	  self.meta_file,
-							  	  self.lang_file,
-							      self.languages,
-							      self.min_docs_per_lang),
-				'corp':GenerateCorpus(self.pdf_dir,
-							  	  self.txt_dir,
-							  	  self.model_dir,
-							  	  self.meta_dir,
-							  	  self.meta_file,
-							  	  self.lang_file,
-							      self.languages,
-							      self.min_docs_per_lang)}
+		return {
+					'dict':GenerateDictionary(pdf_dir=self.pdf_dir,
+										  	  txt_dir=self.txt_dir,
+										  	  model_dir=self.model_dir,
+										  	  meta_dir=self.meta_dir,
+										  	  meta_file=self.meta_file,
+										  	  lang_file=self.lang_file,
+										  	  clean_level=self.clean_level,
+										      languages=self.languages,
+										      max_word_length=self.max_word_length,
+										      min_docs_per_lang=self.min_docs_per_lang),
+					'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
+									  	  txt_dir=self.txt_dir,
+									  	  model_dir=self.model_dir,
+									  	  meta_dir=self.meta_dir,
+									  	  meta_file=self.meta_file,
+									  	  lang_file=self.lang_file,
+									  	  clean_level=self.clean_level,
+									      languages=self.languages,
+									      max_word_length=self.max_word_length,
+									      min_docs_per_lang=self.min_docs_per_lang)
+				}
 
 	def output(self):
 		topic_range = self.topic_range.split(',')
 		topic_range = [int(i) for i in topic_range]
 		topic_range = range(topic_range[0],topic_range[1],topic_range[2])
+
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
 		return {
 					'langs':{
 							idioma:
 								{
-									n_topics:luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%d.lda' % (idioma, n_topics))
+									n_topics:luigi.LocalTarget(self.model_dir + '/' + 'lda-%s-%s-%d.lda' % (kind, idioma, n_topics))
 									for n_topics in topic_range
 								}
 							for idioma in self.input()['corp']['langs'].iterkeys()

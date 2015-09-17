@@ -16,9 +16,10 @@ import logging
 
 
 class GeneradorCorpus(object):
-	def __init__(self, carpeta_textos, carpeta_salida, truncamiento):
+	def __init__(self, carpeta_textos, ruta_diccionario, truncamiento):
 		self.carpeta_textos = carpeta_textos
-		self.carpeta_salida = carpeta_salida
+		#FELIPE# self.carpeta_salida = carpeta_salida
+		self.ruta_diccionario = ruta_diccionario
 		self.truncamiento = truncamiento
 
 		logging.info("GeneradorCorpus creado.")
@@ -38,9 +39,10 @@ class GeneradorCorpus(object):
 			corpus.append(diccionario.doc2bow(token[0:self.truncamiento] for token in contenido.lower().split()))
 
 
-	def generarCorpus(self, idioma):
+	def generarCorpus(self):
 
-		diccionario = corpora.Dictionary.load(os.path.join(self.carpeta_salida, "diccionario_"+idioma+".dict"))
+		# diccionario = corpora.Dictionary.load(os.path.join(self.carpeta_salida, "diccionario_"+idioma+".dict"))
+		diccionario = corpora.Dictionary.load(self.ruta_diccionario)
 		logging.info("Diccionario cargado!")
 		print "Diccionario cargado!"
 		
@@ -58,8 +60,9 @@ class GeneradorCorpus(object):
 		self.corpus = corpus
 		return True
 
-	def serializarCorpus(self, idioma):
-		direccion_salida = os.path.join(self.carpeta_salida, "corpus_"+idioma+".mm")
+	#FELIPE# Ahora recibe nombre de archivo de salida
+	def serializarCorpus(self, filename):
+		direccion_salida = filename #os.path.join(self.carpeta_salida, "corpus_"+idioma+".mm")
 		corpora.MmCorpus.serialize(direccion_salida, self.corpus)
 		logging.info("Corpus guardado en: "+direccion_salida)
 		print "Corpus guardado en: "+direccion_salida
