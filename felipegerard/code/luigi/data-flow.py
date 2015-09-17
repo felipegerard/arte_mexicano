@@ -125,12 +125,12 @@ class GenerateDictionary(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
-	# ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H:%M:%S')
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
 	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
+	max_word_length = luigi.IntParameter(default=6)
 	min_docs_per_lang = luigi.IntParameter(default=1)
 	
 	def requires(self):
@@ -142,26 +142,26 @@ class GenerateDictionary(luigi.Task):
 			flags = 'raw,clean,stopwords'
 		else:
 			print 'WARNING: No valid clean level given. Defaulting to stopword format...'
-			self.clean_level = 'stopwords'
 			flags = 'raw,clean,stopwords'
 
-		return {
-					'clean_level':self.clean_level,
-					'detect':DetectLanguages(self.pdf_dir,
-											  self.txt_dir,
-											  self.meta_dir,
-											  self.meta_file,
-											  self.lang_file,
-											  flags)
-				}
+		return DetectLanguages(pdf_dir=self.pdf_dir,
+							  txt_dir=self.txt_dir,
+							  meta_dir=self.meta_dir,
+							  meta_file=self.meta_file,
+							  lang_file=self.lang_file,
+							  clean_level=flags)
 
 	def output(self):
 		idiomas_permitidos = ['spanish','english','french','italian','german']
 		idiomas = self.languages.split(',')
 		idiomas = [i for i in idiomas if i in idiomas_permitidos]
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
 		output = {
 					'langs':{
-						idioma:luigi.LocalTarget(self.model_dir + '/diccionario_' + self.input()['clean_level'] + '_' + idioma + '.dict')
+						idioma:luigi.LocalTarget(self.model_dir + '/diccionario_' + kind + '_' + idioma + '.dict')
 						for idioma in idiomas
 					},
 				'files':self.input()['files']}
@@ -178,22 +178,25 @@ class GenerateDictionary(luigi.Task):
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
 
-			rutaTextos = os.path.join(self.txt_dir,self.input()['clean_level'],idioma)
+			rutaTextos = os.path.join(self.txt_dir,self.clean_level,idioma)#self.input()['clean_level'],idioma)
+			print rutaTextos
 			if os.path.exists(rutaTextos):
 				ndocs = len(os.listdir(rutaTextos)) 
 			else:
 				ndocs = 0
+
 			if ndocs < self.min_docs_per_lang:
 				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma" + idioma
 				continue
 			elif not os.path.exists(self.model_dir):
 				print "Creando carpeta base para modelos."
 				os.makedirs(self.model_dir)
+
+			# Generar el diccionario
 			nombre_diccionario = self.output()['langs'][idioma].path
-			generadorDiccionario = GeneradorDiccionario(carpeta_textos, truncamiento)
+			generadorDiccionario = GeneradorDiccionario(rutaTextos, truncamiento=self.max_word_length)
 			generadorDiccionario.generarDiccionario()
 			generadorDiccionario.serializarDiccionario(nombre_diccionario)
-			#generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
 			
 
 
@@ -203,22 +206,25 @@ class GenerateCorpus(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
-	# ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H:%M:%S')
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm')
+	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
+	max_word_length = luigi.IntParameter(default=6)
 	min_docs_per_lang = luigi.IntParameter(default=1)
-
+	
 	def requires(self):
-		return GenerateDictionary(self.pdf_dir,
-							  	  self.txt_dir,
-							  	  self.model_dir,
-							  	  self.meta_dir,
-							  	  self.meta_file,
-							  	  self.lang_file,
-							      self.languages,
-							      self.min_docs_per_lang)
+		return GenerateDictionary(pdf_dir=self.pdf_dir,
+							  	  txt_dir=self.txt_dir,
+							  	  model_dir=self.model_dir,
+							  	  meta_dir=self.meta_dir,
+							  	  meta_file=self.meta_file,
+							  	  lang_file=self.lang_file,
+							  	  clean_level=self.clean_level,
+							      languages=self.languages,
+							      max_word_length=self.max_word_length,
+							      min_docs_per_lang=self.min_docs_per_lang)
 
 	def output(self):
 		return {'langs':{idioma:luigi.LocalTarget(self.model_dir + '/corpus_' + idioma + '.mm') for idioma in self.input()['langs'].iterkeys()},
