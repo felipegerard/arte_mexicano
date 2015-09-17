@@ -19,6 +19,7 @@ $ pip install pdfminer
     * ...
 
 ## To do
+++ Separar limpieza de texto de la lectura en crudo
 + Filtrar páginas con imágenes
 + Guardar txts crudos? Por página?
 + LSA (requiere stopwords?)

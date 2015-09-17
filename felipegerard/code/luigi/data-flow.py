@@ -223,15 +223,15 @@ class GenerateCorpus(luigi.Task):
 	
 	def requires(self):
 		return GenerateDictionary(pdf_dir=self.pdf_dir,
-							  	  txt_dir=self.txt_dir,
-							  	  model_dir=self.model_dir,
-							  	  meta_dir=self.meta_dir,
-							  	  meta_file=self.meta_file,
-							  	  lang_file=self.lang_file,
-							  	  clean_level=self.clean_level,
-							      languages=self.languages,
-							      max_word_length=self.max_word_length,
-							      min_docs_per_lang=self.min_docs_per_lang)
+								  txt_dir=self.txt_dir,
+								  model_dir=self.model_dir,
+								  meta_dir=self.meta_dir,
+								  meta_file=self.meta_file,
+								  lang_file=self.lang_file,
+								  clean_level=self.clean_level,
+								  languages=self.languages,
+								  max_word_length=self.max_word_length,
+								  min_docs_per_lang=self.min_docs_per_lang)
 
 	def output(self):
 		if self.clean_level in ('raw','clean','stopwords'):
@@ -298,25 +298,25 @@ class TrainLDA(luigi.Task):
 	def requires(self):
 		return {
 					'dict':GenerateDictionary(pdf_dir=self.pdf_dir,
-										  	  txt_dir=self.txt_dir,
-										  	  model_dir=self.model_dir,
-										  	  meta_dir=self.meta_dir,
-										  	  meta_file=self.meta_file,
-										  	  lang_file=self.lang_file,
-										  	  clean_level=self.clean_level,
-										      languages=self.languages,
-										      max_word_length=self.max_word_length,
-										      min_docs_per_lang=self.min_docs_per_lang),
+											  txt_dir=self.txt_dir,
+											  model_dir=self.model_dir,
+											  meta_dir=self.meta_dir,
+											  meta_file=self.meta_file,
+											  lang_file=self.lang_file,
+											  clean_level=self.clean_level,
+											  languages=self.languages,
+											  max_word_length=self.max_word_length,
+											  min_docs_per_lang=self.min_docs_per_lang),
 					'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
-									  	  txt_dir=self.txt_dir,
-									  	  model_dir=self.model_dir,
-									  	  meta_dir=self.meta_dir,
-									  	  meta_file=self.meta_file,
-									  	  lang_file=self.lang_file,
-									  	  clean_level=self.clean_level,
-									      languages=self.languages,
-									      max_word_length=self.max_word_length,
-									      min_docs_per_lang=self.min_docs_per_lang)
+										  txt_dir=self.txt_dir,
+										  model_dir=self.model_dir,
+										  meta_dir=self.meta_dir,
+										  meta_file=self.meta_file,
+										  lang_file=self.lang_file,
+										  clean_level=self.clean_level,
+										  languages=self.languages,
+										  max_word_length=self.max_word_length,
+										  min_docs_per_lang=self.min_docs_per_lang)
 				}
 
 	def output(self):
@@ -342,11 +342,16 @@ class TrainLDA(luigi.Task):
 				}
 
 	def run(self):
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
 		for idioma in self.output()['langs'].iterkeys():
 			dicc_path = self.input()['dict']['langs'][idioma].path
 			corp_path = self.input()['corp']['langs'][idioma].path
 			print '=============================='
-			print 'Corriendo LDA de ' + idioma
+			print 'Corriendo LDA de %s con nivel de limpieza %s' % (idioma, kind)
 			print '=============================='
 
 			# Cargar diccionario y corpus
@@ -381,74 +386,95 @@ class PredictLDA(luigi.Task):
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm')
+	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
+	max_word_length = luigi.IntParameter(default=6)
 	min_docs_per_lang = luigi.IntParameter(default=1)
 
 	def requires(self):
-	    return {'lda':TrainLDA(self.topic_range,
-	                    self.by_chunks,
-	                    self.chunk_size,
-	                    self.update_e,
-	                    self.n_passes,
-	                    self.pdf_dir,
-	                    self.txt_dir,
-	                    self.model_dir,
-	                    self.meta_dir,
-	                    self.meta_file,
-	                    self.lang_file,
-	                    self.languages,
-	                    self.min_docs_per_lang),
-	        'corp':GenerateCorpus(self.pdf_dir,
-	                    self.txt_dir,
-	                    self.model_dir,
-	                    self.meta_dir,
-	                    self.meta_file,
-	                    self.lang_file,
-	                    self.languages,
-	                    self.min_docs_per_lang)}
+		return {
+			'lda':TrainLDA(topic_range=self.topic_range,
+							by_chunks=self.by_chunks,
+							chunk_size=self.chunk_size,
+							update_e=self.update_e,
+							n_passes=self.n_passes,
+							pdf_dir=self.pdf_dir,
+							txt_dir=self.txt_dir,
+							model_dir=self.model_dir,
+							meta_dir=self.meta_dir,
+							meta_file=self.meta_file,
+							lang_file=self.lang_file,
+							clean_level=self.clean_level,
+							languages=self.languages,
+							max_word_length=self.max_word_length,
+							min_docs_per_lang=self.min_docs_per_lang),
+
+				'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
+									  txt_dir=self.txt_dir,
+									  model_dir=self.model_dir,
+									  meta_dir=self.meta_dir,
+									  meta_file=self.meta_file,
+									  lang_file=self.lang_file,
+									  clean_level=self.clean_level,
+									  languages=self.languages,
+									  max_word_length=self.max_word_length,
+									  min_docs_per_lang=self.min_docs_per_lang)
+			}
 
 	def output(self):
-	    # return {"doc_topics" : luigi.LocalTarget(os.path.join(self.res_dir, self.topic_results)),
-	    #         "topics" : luigi.LocalTarget(os.path.join(self.res_dir, self.topics))
-	    #         }
-	    topic_range = self.topic_range.split(',')
-	    topic_range = [int(i) for i in topic_range]
-	    topic_range = range(topic_range[0],topic_range[1],topic_range[2])
+		topic_range = self.topic_range.split(',')
+		topic_range = [int(i) for i in topic_range]
+		topic_range = range(topic_range[0],topic_range[1],topic_range[2])
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+		
+		return {
+					'langs':
+					{
+						idioma:
+						{
+							n_topics:
+							{
+								"doc_topics" : luigi.LocalTarget(os.path.join(self.res_dir, 'topic_results_%s_%s_%d.pickle' % (kind, idioma, n_topics))),
+								"topics" : luigi.LocalTarget(os.path.join(self.res_dir, 'topics_%s_%s_%d.pickle' % (kind, idioma, n_topics)))
+							}
+							for n_topics in topic_range
+						}
+						for idioma in self.input()['corp']['langs'].iterkeys()
+					},
+					'files':self.input()['corp']['files']
+				}
 
-	    return {
-	            idioma:
-	              {
-	                n_topics:
-	                  {
-	                    "doc_topics" : luigi.LocalTarget(os.path.join(self.res_dir, 'topic_results_'+idioma+'_'+str(n_topics)+'.pickle')),
-	                    "topics" : luigi.LocalTarget(os.path.join(self.res_dir, 'topics_'+idioma+'_'+str(n_topics)+'.pickle'))
-	                  }
-	                for n_topics in topic_range
-	              }
-	            for idioma in self.input()['corp']['langs'].iterkeys()
-	          }
 
 	def run(self):
-	    if not os.path.exists(self.res_dir):
-			print 'Creando carpeta para resultados NIGGANIGGANIGAGGAGA...'
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
+		if not os.path.exists(self.res_dir):
+			print 'Creando carpeta para resultados...'
 			os.mkdir(self.res_dir)
-	    for idioma, modelos in self.input()['lda']['langs'].iteritems():
-	     	corp_path = self.input()['corp']['langs'][idioma].path
-	     	corpus = corpora.MmCorpus(corp_path)
-	     	for n_topics, modelo in modelos.iteritems():
-	        	model_path = modelo.path
-	        	model = LdaModel.load(model_path)
-	        	classification = []
-	        	for doc in corpus:
-	          		topic = model.get_document_topics(doc)
-	          		classification.append(topic)
-        		print '--------------------------------------'
-        		print 'Clasificando textos en ' + idioma + ' con ' + str(n_topics) + ' tópicos'
-		        with self.output()[idioma][n_topics]['doc_topics'].open('w') as f:
-		        	pickle.dump(classification, f)
-		        with self.output()[idioma][n_topics]['topics'].open('w') as f:
-		        	pickle.dump(model.print_topics(len(corpus),5), f) # el 5 es un parámetro que se puede editar (numero de palabras del tópico a mostrar)	
+
+		for idioma, modelos in self.input()['lda']['langs'].iteritems():
+			corp_path = self.input()['corp']['langs'][idioma].path
+			corpus = corpora.MmCorpus(corp_path)
+			for n_topics, modelo in modelos.iteritems():
+				model_path = modelo.path
+				model = LdaModel.load(model_path)
+				classification = []
+				for doc in corpus:
+					topic = model.get_document_topics(doc)
+					classification.append(topic)
+				print '--------------------------------------'
+				print 'Clasificando textos en %s con nivel de limpieza "%s" con %d tópicos' % (idioma, kind, n_topics)
+				with self.output()['langs'][idioma][n_topics]['doc_topics'].open('w') as f:
+					pickle.dump(classification, f)
+				with self.output()['langs'][idioma][n_topics]['topics'].open('w') as f:
+					pickle.dump(model.print_topics(len(corpus),5), f) # el 5 es un parámetro que se puede editar (numero de palabras del tópico a mostrar)	
 		
 
 if __name__ == '__main__':
