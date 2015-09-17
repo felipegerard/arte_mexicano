@@ -37,39 +37,48 @@ class ReadText(luigi.Task):
 	txt_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
+	clean_level = luigi.Parameter(default='raw,clean,stopwords')
 
 	def requires(self):
 		pdf_bookdir = os.path.join(self.pdf_dir, self.book_name)
 		return InputPDF(pdf_bookdir)
 
 	def output(self):
-		metafile = os.path.join(self.txt_dir,'meta',self.book_name+'.meta')
-		return luigi.LocalTarget(metafile)
+		flags = self.clean_level.split(',')
+		if not ('raw' in flags or 'clean' in flags):
+			print 'WARNING: No cleaning flags defined. Defaulting to raw format only...'
+			flags = ['raw']
+		metafiles = {kind:os.path.join(self.txt_dir,kind,'meta',self.book_name+'.meta')
+					for kind in flags}
+		return {kind:luigi.LocalTarget(path)
+				for kind, path in metafiles.iteritems()}
 		
 	def run(self):
 		# Extraer textos
 		idioma, contenido = extraerVolumen(self.input())
 
-		# Limpiar texto
-		contenido = clean_text(contenido)
-		contenido = remove_stopwords(contenido, idioma)
+		flags = self.output().keys()
+		if 'raw' in flags:
+			lang_path = os.path.join(self.txt_dir,'raw',idioma)
+			save_content(lang_path, self.book_name, contenido)
 
-		# Crear carpeta del idioma
-		if not os.path.exists(self.txt_dir + '/' + idioma):
-			os.mkdir(self.txt_dir + '/' + idioma)
-			print '--------------------'
-			print 'Creando carpeta de ' + idioma
-
-		# Guardar contenido
-		book_path = os.path.join(self.txt_dir,idioma,self.book_name+'.txt')
-		with open(book_path, 'w') as f:
-			f.write(contenido)
-		print self.book_name + ' --> ' + idioma
-
+		if 'clean' in flags:
+			contenido = clean_text(contenido)
+			lang_path = os.path.join(self.txt_dir,'clean',idioma)
+			save_content(lang_path, self.book_name, contenido)
+			if 'stopwords' in flags:
+				contenido = remove_stopwords(contenido, idioma)
+				lang_path = os.path.join(self.txt_dir,'stopwords',idioma)
+				save_content(lang_path, self.book_name, contenido)
+		elif 'stopwords' in flags:
+			print 'WARNING: Cannot remove stopwords without cleaning first. Ommiting "stopwords" flag.'
+		
 		# Guardar los metadatos
-		with self.output().open('w') as f:
-			f.write(idioma)
-		guardarMetadatos(self.book_name,idioma,self.txt_dir,self.meta_file)
+		for kind, o in self.output().iteritems():
+			with o.open('w') as f:
+				f.write(idioma)
+			guardarMetadatos(self.book_name,idioma,
+				os.path.join(self.txt_dir,kind),self.meta_file)
 	
 
 # Meter a carpetas de idioma. Si no hacemos esto entonces no es idempotente
@@ -79,25 +88,35 @@ class DetectLanguages(luigi.Task):
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm')
+	clean_level = luigi.Parameter(default='raw,clean,stopwords')
 
 	def requires(self):
-		return [ReadText(book_name, self.pdf_dir, self.txt_dir, self.meta_dir, self.meta_file) for book_name in os.listdir(self.pdf_dir)]
+		return [ReadText(book_name, self.pdf_dir, self.txt_dir, self.meta_dir, self.meta_file, self.clean_level)
+				for book_name in os.listdir(self.pdf_dir)]
 
 	def output(self):
+		flags = self.input()[0].keys()
 		metapath = os.path.join(self.txt_dir,self.lang_file)
-		return {'langs':luigi.LocalTarget(metapath),
-				'files':self.input()}
+		return {
+					'langs':{
+						kind:luigi.LocalTarget(os.path.join(self.txt_dir,kind,self.lang_file))
+						for kind in flags
+					},
+					'files':self.input()
+				}
 		
 	def run(self):
-		idiomas = set()
-		for p in os.listdir(os.path.join(self.txt_dir,self.meta_dir)):
-			p = os.path.join(self.txt_dir, self.meta_dir, p)
-			with open(p, 'r') as f:
-				idiomas.add(f.read())
-		idiomas = list(idiomas)
-		# Metadatos de salida
-		with self.output()['langs'].open('w') as f:
-			f.write('\n'.join(idiomas))
+		for kind, target in self.output()['langs'].iteritems():
+			idiomas = set()
+			txt_kind_meta_dir = os.path.join(self.txt_dir,kind,self.meta_dir)
+			for p in os.listdir(txt_kind_meta_dir):
+				p = os.path.join(txt_kind_meta_dir, p)
+				with open(p, 'r') as f:
+					idiomas.add(f.read())
+			idiomas = list(idiomas)
+			# Metadatos de salida
+			with target.open('w') as f:
+				f.write('\n'.join(idiomas))
 	
 
 # Generar diccionario
@@ -110,21 +129,41 @@ class GenerateDictionary(luigi.Task):
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
 	min_docs_per_lang = luigi.IntParameter(default=1)
 	
 	def requires(self):
-		return DetectLanguages(self.pdf_dir,
-							  self.txt_dir,
-							  self.meta_dir,
-							  self.meta_file,
-							  self.lang_file)
+		if self.clean_level == 'raw':
+			flags = 'raw'
+		elif self.clean_level == 'clean':
+			flags = 'raw,clean'
+		elif self.clean_level == 'stopwords':
+			flags = 'raw,clean,stopwords'
+		else:
+			print 'WARNING: No valid clean level given. Defaulting to stopword format...'
+			self.clean_level = 'stopwords'
+			flags = 'raw,clean,stopwords'
+
+		return {
+					'clean_level':self.clean_level,
+					'detect':DetectLanguages(self.pdf_dir,
+											  self.txt_dir,
+											  self.meta_dir,
+											  self.meta_file,
+											  self.lang_file,
+											  flags)
+				}
 
 	def output(self):
 		idiomas_permitidos = ['spanish','english','french','italian','german']
 		idiomas = self.languages.split(',')
 		idiomas = [i for i in idiomas if i in idiomas_permitidos]
-		output = {'langs':{idioma:luigi.LocalTarget(self.model_dir + '/diccionario_' + idioma + '.dict') for idioma in idiomas},
+		output = {
+					'langs':{
+						idioma:luigi.LocalTarget(self.model_dir + '/diccionario_' + self.input()['clean_level'] + '_' + idioma + '.dict')
+						for idioma in idiomas
+					},
 				'files':self.input()['files']}
 		return output
 		# return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
@@ -139,7 +178,7 @@ class GenerateDictionary(luigi.Task):
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
 
-			rutaTextos = os.path.join(self.txt_dir,idioma)
+			rutaTextos = os.path.join(self.txt_dir,self.input()['clean_level'],idioma)
 			if os.path.exists(rutaTextos):
 				ndocs = len(os.listdir(rutaTextos)) 
 			else:
@@ -150,7 +189,11 @@ class GenerateDictionary(luigi.Task):
 			elif not os.path.exists(self.model_dir):
 				print "Creando carpeta base para modelos."
 				os.makedirs(self.model_dir)
-			generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
+			nombre_diccionario = self.output()['langs'][idioma].path
+			generadorDiccionario = GeneradorDiccionario(carpeta_textos, truncamiento)
+			generadorDiccionario.generarDiccionario()
+			generadorDiccionario.serializarDiccionario(nombre_diccionario)
+			#generarDiccionario(rutaTextos, self.model_dir, 6, idioma)
 			
 
 

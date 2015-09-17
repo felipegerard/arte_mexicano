@@ -86,7 +86,7 @@ def extraerVolumen(inputPDF):
 # Guardar metadatos
 def guardarMetadatos(book_name,idioma,txt_dir,meta_file):
     outfile = book_name
-    meta = txt_dir + '/' + meta_file
+    meta = os.path.join(txt_dir, meta_file)
     flag = True
     if os.path.exists(meta):
         with open(meta, 'r') as f:
@@ -99,8 +99,8 @@ def guardarMetadatos(book_name,idioma,txt_dir,meta_file):
 
 # Generar diccionario
 
-def generarDiccionario(carpeta_textos, carpeta_salida, truncamiento, idioma):
-    generadorDiccionario = GeneradorDiccionario(carpeta_textos, carpeta_salida, truncamiento)
+def generarDiccionario(carpeta_textos, truncamiento, idioma):
+    generadorDiccionario = GeneradorDiccionario(carpeta_textos, truncamiento)
     #FELIPE# listaArchivos = generadorDiccionario.obtenerLibros()
     generadorDiccionario.generarDiccionario()
     generadorDiccionario.serializarDiccionario(idioma)
@@ -114,6 +114,18 @@ def generarCorpus(carpeta_textos, carpeta_salida, truncamiento, idioma):
 
 # ----------------------------------------------------------------
 # Funciones y clases adicionales
+
+def save_content(target_dir, book_name, content):
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+        print '--------------------'
+        print 'Creando carpeta ' + target_dir
+
+    # Guardar contenido
+    book_path = os.path.join(target_dir,book_name+'.txt')
+    with open(book_path, 'w') as f:
+        f.write(content)
+    print book_name + ' --> ' + target_dir
 
 # Limpiar texto ### FALTA
 

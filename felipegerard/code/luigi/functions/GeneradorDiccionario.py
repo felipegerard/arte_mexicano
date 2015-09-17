@@ -16,9 +16,9 @@ import logging
 import shutil
 
 class GeneradorDiccionario(object):
-	def __init__(self, carpeta_textos, carpeta_salida, truncamiento):
+	def __init__(self, carpeta_textos, truncamiento):
 		self.carpeta_textos = carpeta_textos
-		self.carpeta_salida = carpeta_salida
+		#FELIPE# self.carpeta_salida = carpeta_salida
 		self.truncamiento = truncamiento
 		self.archivos = os.listdir(self.carpeta_textos)
 		logging.info("GeneradorDiccionario creado.")
@@ -58,9 +58,9 @@ class GeneradorDiccionario(object):
 		logging.info(ruta_archivo+" agregado al diccionario!")
 		print ruta_archivo+" agregado al diccionario!"	
 
-
-	def serializarDiccionario(self,idioma):
-		direccion_salida = os.path.join(self.carpeta_salida, "diccionario_"+idioma+".dict")
+	#FELIPE# Ahora recibe nombre de archivo de salida
+	def serializarDiccionario(self,filename):
+		direccion_salida = filename #os.path.join(self.carpeta_salida, filename)
 		self.diccionario.save(direccion_salida)
 		logging.info("diccionario guardado en "+direccion_salida)
 		print "diccionario guardado en "+direccion_salida
