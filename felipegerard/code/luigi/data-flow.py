@@ -32,6 +32,35 @@ class InputPDF(luigi.ExternalTask):
 
 # Input book
 class ReadText(luigi.Task):
+	'''Extraer texto de los PDFs y guardarlo en formato crudo'''
+	book_name = luigi.Parameter()
+	pdf_dir = luigi.Parameter()
+	txt_dir = luigi.Parameter()
+	meta_dir = luigi.Parameter(default='meta')
+	meta_file = luigi.Parameter(default='librosAgregados.tm')
+
+	def requires(self):
+		pdf_bookdir = os.path.join(self.pdf_dir, self.book_name)
+		return InputPDF(pdf_bookdir)
+
+	def output(self):
+		return luigi.LocalTarget(os.path.join(self.txt_dir,self.meta_dir,self.book_name+'.meta'))
+		
+	def run(self):
+		# Extraer textos
+		idioma, contenido = extraerVolumen(self.input())
+		lang_path = os.path.join(self.txt_dir,idioma)
+		save_content(lang_path, self.book_name, contenido)
+
+		# Guardar los metadatos
+		with self.output().open('w') as f:
+			f.write(idioma)
+		guardarMetadatos(self.book_name,idioma,
+			os.path.join(self.txt_dir),self.meta_file)
+
+# Input book
+class CleanText(luigi.Task):
+	'''Limpiar el texto según el nivel de limpieza deseado para la aplicación'''
 	book_name = luigi.Parameter()
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
@@ -40,8 +69,11 @@ class ReadText(luigi.Task):
 	clean_level = luigi.Parameter(default='raw,clean,stopwords')
 
 	def requires(self):
-		pdf_bookdir = os.path.join(self.pdf_dir, self.book_name)
-		return InputPDF(pdf_bookdir)
+		return ReadText(book_name=self.book_name,
+						pdf_dir=self.pdf_dir,
+						txt_dir=os.path.join(self.txt_dir, 'raw'),
+						meta_dir=self.meta_dir,
+						meta_file=self.meta_file)
 
 	def output(self):
 		flags = self.clean_level.split(',')
@@ -54,15 +86,17 @@ class ReadText(luigi.Task):
 				for kind, path in metafiles.iteritems()}
 		
 	def run(self):
-		# Extraer textos
-		idioma, contenido = extraerVolumen(self.input())
-
 		flags = self.output().keys()
-		if 'raw' in flags:
-			lang_path = os.path.join(self.txt_dir,'raw',idioma)
-			save_content(lang_path, self.book_name, contenido)
+		if flags == ['raw']:
+			print 'No hacemos limpieza de %s' % (self.book_name)
 
+		# Leemos el idioma de los metadatos
+		with self.input().open('r') as f:
+			idioma = f.read()
 		if 'clean' in flags:
+			# Leemos el contenido crudo
+			with open(os.path.join(self.txt_dir,'raw',idioma,self.book_name+'.txt'), 'r') as f:
+				contenido = f.read()
 			contenido = clean_text(contenido)
 			lang_path = os.path.join(self.txt_dir,'clean',idioma)
 			save_content(lang_path, self.book_name, contenido)
@@ -91,7 +125,8 @@ class DetectLanguages(luigi.Task):
 	clean_level = luigi.Parameter(default='raw,clean,stopwords')
 
 	def requires(self):
-		return [ReadText(book_name, self.pdf_dir, self.txt_dir, self.meta_dir, self.meta_file, self.clean_level)
+		return [CleanText(book_name, self.pdf_dir, self.txt_dir, self.meta_dir,
+						self.meta_file, self.clean_level)
 				for book_name in os.listdir(self.pdf_dir)]
 
 	def output(self):
