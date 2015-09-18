@@ -25,29 +25,15 @@ class AgrupadorLSI(object):
 		logging.info("AgrupadorLSI creado.")
 		print "AgrupadorLSI creado."
 
-	def cargarCorpus(self):
-		logging.info("Cargando corpus.")
+	def cargar(self):
 		print "Cargando corpus."
 		self.corpus = corpora.MmCorpus(os.path.join(self.carpeta_salida, "corpus_"+self.idioma+".mm"))
-		return True
-
-	def cargarTfIdf(self):
-		logging.info("Cargando TfIdf.")
 		print "Cargando TfIdf."
 		self.tfidf = models.TfidfModel.load(os.path.join(self.carpeta_salida,"model_"+self.idioma+".tfidf"))
-		return True
-
-	def cargarLSIModel(self):
-		logging.info("Cargando model LSI.")
 		print "cargando modelo LSI."
 		self.lsi = models.LsiModel.load(os.path.join(self.carpeta_salida,"model_"+self.idioma+".lsi"))
-		return True
-	
-	def cargarIndiceLSI(self):
-		logging.info("Cargando indice LSI.")
 		print "Cargando indice LSI."
 		self.indice = similarities.MatrixSimilarity.load(os.path.join(self.carpeta_salida,"model_lsi_"+self.idioma+".index"))
-		return True
 
 	def agrupar(self):
 		for indice, archivo in enumerate(self.listaArchivos):
@@ -58,6 +44,7 @@ class AgrupadorLSI(object):
 		print str(len(self.listaArchivos))+" textos agrupados."
 		return True
 
+	#FELIPE# Esto nunca ser usa
 	def crearDiccionarioPredicciones(self):
 		for grupo,archivo in self.predicciones:
 			if grupo not in prediccionesDic:
@@ -70,7 +57,7 @@ class AgrupadorLSI(object):
 		for indice, archivo in enumerate(self.listaArchivos):
 			sims = self.indice[self.lsi[self.tfidf[self.corpus[indice]]]]
 			sims = sorted(enumerate(sims), key=lambda item: -item[1])
-			self.similares.append((archivo.replace(".txt",""), sims[0:6]))
+			self.similares.append((archivo.replace(".txt",""), sims[0:6])) #FELIPE# Se quedan con los primeros 5 hits
 		for actual, comparaciones in self.similares:
 			tmp = list()
 			for idSimilar, angulo in comparaciones:

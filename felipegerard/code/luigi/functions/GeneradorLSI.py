@@ -50,7 +50,7 @@ class GeneradorLSI(object):
 
 	def generarYSerializarIndice(self):
 		corpus_LSI = self.model_LSI[self.corpus_tfidf]
-		indice = similarities.MatrixSimilarity(corpus_LSI)
+		indice = similarities.MatrixSimilarity(corpus_LSI) #FELIPE# Posiblemente cambiar a Similarity para que no corra todo en memoria
 		indice.save(self.ruta_indice)
 		logging.info("Indice de LSI guardado en " + self.ruta_indice)
 		print "USER INFO: Indice de LSI guardado en " + self.ruta_indice
