@@ -30,7 +30,7 @@ class InputPDF(luigi.ExternalTask):
 	def output(self):
 		return luigi.LocalTarget(self.filename)
 
-# Input book
+# Extract raw text
 class ReadText(luigi.Task):
 	'''Extraer texto de los PDFs y guardarlo en formato crudo'''
 	book_name = luigi.Parameter()
@@ -58,7 +58,7 @@ class ReadText(luigi.Task):
 		guardarMetadatos(self.book_name,idioma,
 			os.path.join(self.txt_dir),self.meta_file)
 
-# Input book
+# Clean text
 class CleanText(luigi.Task):
 	'''Limpiar el texto según el nivel de limpieza deseado para la aplicación'''
 	book_name = luigi.Parameter()
@@ -115,7 +115,7 @@ class CleanText(luigi.Task):
 				os.path.join(self.txt_dir,kind),self.meta_file)
 	
 
-# Meter a carpetas de idioma. Si no hacemos esto entonces no es idempotente
+# Detect languages and write language metadata. Possibly obsolete
 class DetectLanguages(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
@@ -154,9 +154,8 @@ class DetectLanguages(luigi.Task):
 				f.write('\n'.join(idiomas))
 	
 
-# Generar diccionario
+# Generate dictionary for each language and cleanliness level
 class GenerateDictionary(luigi.Task):
-	"""docstring for CleanText"""
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
@@ -242,9 +241,8 @@ class GenerateDictionary(luigi.Task):
 			
 
 
-# Corpus
+# Generate corpus for each language and cleanliness level
 class GenerateCorpus(luigi.Task):
-	"""docstring for CleanText"""
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
@@ -302,7 +300,7 @@ class GenerateCorpus(luigi.Task):
 			generadorCorpus.serializarCorpus(nombre_corpus)
 
 
-# Entrenamiento LDA
+# Train LDA models
 from gensim import corpora
 from gensim.models.ldamodel import LdaModel
 import pickle
@@ -403,6 +401,7 @@ class TrainLDA(luigi.Task):
 				lda.save(self.output()['langs'][idioma][n_topics].path)
 
 
+# Classify texts according to trained LDA models
 class PredictLDA(luigi.Task):
 	"""Necesita el modelo LDA"""
 	#variables de predictLDA
