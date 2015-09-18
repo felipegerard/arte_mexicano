@@ -509,7 +509,116 @@ class PredictLDA(luigi.Task):
 					pickle.dump(classification, f)
 				with self.output()['langs'][idioma][n_topics]['topics'].open('w') as f:
 					pickle.dump(model.print_topics(len(corpus),5), f) # el 5 es un parámetro que se puede editar (numero de palabras del tópico a mostrar)	
-		
+
+# Modelo LSI (TF-IDF + SVD)
+class TrainLSI(luigi.Task):
+	"""Necesita corpus limpio por 
+	idioma sin las stopwords
+	viene del proceso de VECTORIZE"""
+	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
+	
+	pdf_dir = luigi.Parameter()
+	txt_dir = luigi.Parameter()
+	model_dir = luigi.Parameter()
+	meta_dir = luigi.Parameter(default='meta')
+	meta_file = luigi.Parameter(default='librosAgregados.tm')
+	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	clean_level = luigi.Parameter(default='stopwords')
+	languages = luigi.Parameter()
+	max_word_length = luigi.IntParameter(default=6)
+	min_docs_per_lang = luigi.IntParameter(default=1)
+
+
+	def requires(self):
+		return {
+					'dict':GenerateDictionary(pdf_dir=self.pdf_dir,
+											  txt_dir=self.txt_dir,
+											  model_dir=self.model_dir,
+											  meta_dir=self.meta_dir,
+											  meta_file=self.meta_file,
+											  lang_file=self.lang_file,
+											  clean_level=self.clean_level,
+											  languages=self.languages,
+											  max_word_length=self.max_word_length,
+											  min_docs_per_lang=self.min_docs_per_lang),
+					'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
+										  txt_dir=self.txt_dir,
+										  model_dir=self.model_dir,
+										  meta_dir=self.meta_dir,
+										  meta_file=self.meta_file,
+										  lang_file=self.lang_file,
+										  clean_level=self.clean_level,
+										  languages=self.languages,
+										  max_word_length=self.max_word_length,
+										  min_docs_per_lang=self.min_docs_per_lang)
+				}
+
+	def output(self):
+		topic_range = self.topic_range.split(',')
+		topic_range = [int(i) for i in topic_range]
+		topic_range = range(topic_range[0],topic_range[1],topic_range[2])
+
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
+		return {
+					'langs':
+					{
+						idioma:
+						{
+							n_topics:
+							{
+								'tfidf':luigi.LocalTarget(self.model_dir + '/' + 'model-%s-%s-%d.tfidf' % (kind, idioma, n_topics)),
+								'lsi-model':luigi.LocalTarget(self.model_dir + '/' + 'model-%s-%s-%d.lsi' % (kind, idioma, n_topics)),
+								'lsi-index':luigi.LocalTarget(self.model_dir + '/' + 'model-%s-%s-%d.lsi.index' % (kind, idioma, n_topics))
+							}
+							for n_topics in topic_range
+						}
+						for idioma in self.input()['corp']['langs'].iterkeys()
+					},
+					'files':self.input()['corp']['files']
+				}
+
+	def run(self):
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
+		for idioma, salida in self.output()['langs'].iteritems():
+			print '=============================='
+			print 'Corriendo LSI de %s con nivel de limpieza %s' % (idioma, kind)
+			print '=============================='
+
+			# Cargar diccionario y corpus
+			generadorLSI = GeneradorLSI(ruta_diccionario=self.input()['dict']['langs'][idioma].path,
+										ruta_corpus = self.input()['corp']['langs'][idioma].path,
+										ruta_modelo_tfidf = 'dummy',
+										ruta_modelo_lsi = 'dummy',
+										ruta_indice = 'dummy',
+										temas = 0)
+
+			# Correr LSI del idioma para cada numero de topicos.
+			# ESTO SE PUEDE MEJORAR PARA CARGAR SOLO UNA VEZ EL DICCIONARIO Y EL CORPUS DE UN IDIOMA
+			for n_topics, o in salida.iteritems():
+				print 'Número de tópicos: ' + str(n_topics)
+				# Parámetros para el número de tópicos
+				generadorLSI.ruta_modelo_tfidf = o['tfidf'].path
+				generadorLSI.ruta_modelo_lsi = o['lsi-model'].path
+				generadorLSI.ruta_indice = o['lsi-index'].path
+				generadorLSI.temas = n_topics
+				generadorLSI.cargarDiccionarioYCorpus()
+				# Correr el modelo
+				generadorLSI.generarYSerializarTfIdf()
+				generadorLSI.generarYSerializarLSIModel()
+				generadorLSI.generarYSerializarIndice()
+
+
+
+
+
 
 if __name__ == '__main__':
 	luigi.run()

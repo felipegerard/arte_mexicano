@@ -26,6 +26,7 @@ import shutil
 
 execfile('functions/GeneradorDiccionario.py')
 execfile('functions/GeneradorCorpus.py')
+execfile('functions/GeneradorLSI.py')
 
 # Extraccion volumenes
 def obtenerRutaVolumenes(rutaBasePDF):
