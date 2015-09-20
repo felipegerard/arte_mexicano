@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#Hago una seleccion aleatoria de 50 libros
+#Hago una seleccion aleatoria de 100 libros
 aws s3 ls einformativa/biblioteca_arte/ | sort --random-sort | head -100 | awk '{ print $2 }' > libros_muestra.txt
 
 cd Libros
