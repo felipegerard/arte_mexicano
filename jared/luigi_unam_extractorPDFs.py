@@ -30,7 +30,7 @@ class DirectorioLibros(luigi.ExternalTask):
         todos los libros
         """
 
-        return luigi.LocalTarget("/home/jared/arte_mexicano-1/jared/Libros")
+        return luigi.LocalTarget(self.filename)
 
 class JuntarPDFs(luigi.Task):
     """
