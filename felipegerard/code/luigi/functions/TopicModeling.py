@@ -78,7 +78,10 @@ def generarLSI(carpeta_salida, cantidad_temas, idioma):
 
 def agruparLSI(carpeta_salida, listaArchivos, idioma):
 	agrupadorLSI = AgrupadorLSI(carpeta_salida, listaArchivos, idioma)
-	agrupadorLSI.cargar()
+	agrupadorLSI.cargarCorpus()
+	agrupadorLSI.cargarTfIdf()
+	agrupadorLSI.cargarLSIModel()
+	agrupadorLSI.cargarIndiceLSI()
 	agrupadorLSI.agrupar()
 	agrupadorLSI.mostrarGrupos()
 	similares = agrupadorLSI.calcularDistancias()
