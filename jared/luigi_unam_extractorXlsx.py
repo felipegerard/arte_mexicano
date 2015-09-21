@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Proceso de extractorPDFsFileSystem de la unam, junta los pdfs
-de cada libro en bloques y los une, en una carpeta que se define
-por el usuario se guardan estos bloques, tiene una opcion para
-no procesar todos los libros sino unos cuantos
-"""
 
+import luigi
+import pickle
 import sys
 from openpyxl import load_workbook
 import logging
@@ -24,15 +20,15 @@ class DireccionArchivo(luigi.ExternalTask):
         return luigi.LocalTarget(self.filename)
 
 class ExractorXlsx(luigi.Task):
-  input_dir = luigi.Parameter()
+	input_dir = luigi.Parameter()
 
-  def requires(self):
-    return DireccionArchivo(self.input_dir)
+	def requires(self):
+	return DireccionArchivo(self.input_dir)
 
-  def run(self):
+	def run(self):
 
-    def abrirExcel(direccionArchivo):
-    	wb = load_workbook(direccionArchivo)
+	def abrirExcel(direccionArchivo):
+		wb = load_workbook(direccionArchivo)
 		return wb.active
 
 	def extraerLibros(direccionArchivo, descriptor):
@@ -55,8 +51,9 @@ class ExractorXlsx(luigi.Task):
 	libros = extraerLibros(self.input_dir, descriptor)
 
 	f = self.output().open('w')
-    pickle.dump(libros, f)
-    f.close()
+	pickle.dump(libros, f)
+	f.close()
+
 
 	def output(self):
     	return luigi.LocalTarget('libros.pickle')
