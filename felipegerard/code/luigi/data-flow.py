@@ -504,11 +504,7 @@ class PredictLDA(luigi.Task):
 					topic = model.get_document_topics(doc)
 					classification.append(topic)
 				print '--------------------------------------'
-				print 'Clasificando textos en %s con nivel de limpieza "%s" con %d tópicos' % (idioma, kind, n_topics)
-				pprint(classification)
-				print len(corpus)
-				pprint(model.print_topics(n_topics,5))
-				print '--------------------------------------'
+				print 'USER INFO: Clasificando textos en %s con nivel de limpieza "%s" con %d tópicos' % (idioma, kind, n_topics)
 				model.print_topics(len(corpus),5)
 				with self.output()['langs'][idioma][n_topics]['doc_topics'].open('w') as f:
 					pickle.dump(classification, f)
