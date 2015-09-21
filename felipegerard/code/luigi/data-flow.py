@@ -505,10 +505,15 @@ class PredictLDA(luigi.Task):
 					classification.append(topic)
 				print '--------------------------------------'
 				print 'Clasificando textos en %s con nivel de limpieza "%s" con %d tópicos' % (idioma, kind, n_topics)
+				pprint(classification)
+				print len(corpus)
+				pprint(model.print_topics(n_topics,5))
+				print '--------------------------------------'
+				model.print_topics(len(corpus),5)
 				with self.output()['langs'][idioma][n_topics]['doc_topics'].open('w') as f:
 					pickle.dump(classification, f)
 				with self.output()['langs'][idioma][n_topics]['topics'].open('w') as f:
-					pickle.dump(model.print_topics(len(corpus),5), f) # el 5 es un parámetro que se puede editar (numero de palabras del tópico a mostrar)	
+					pickle.dump(model.print_topics(n_topics,5), f) # el 5 es un parámetro que se puede editar (numero de palabras del tópico a mostrar)	
 
 # Modelo LSI (TF-IDF + SVD)
 class TrainLSI(luigi.Task):
@@ -664,7 +669,7 @@ class GroupByLSI(luigi.Task):
 					{
 						idioma:
 						{
-							n_topics:luigi.LocalTarget(self.res_dir + '/' + 'lsi-results-%s-%s-%d.csv' % (kind, idioma, n_topics))
+							n_topics:luigi.LocalTarget(self.res_dir + '/' + 'lsi-results-%s-%s-%d.tsv' % (kind, idioma, n_topics))
 							for n_topics in topic_range
 						}
 						for idioma in self.input()['langs'].iterkeys()
