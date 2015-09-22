@@ -26,7 +26,7 @@ mat_pin = np.array(mat_pin)/256
 mat_pin = mat_pin.round()
 mat_pin = csr_matrix(mat_pin)
 
-svd = TruncatedSVD(n_components=5, random_state=42)
+svd = TruncatedSVD(n_components=8, random_state=42)
 
 X = svd.fit_transform(mat_pin) 
 
