@@ -1,0 +1,211 @@
+
+
+Se realizaron pruebas de la función parallel_pdftotext.sh de la siguiente manera:
+
+1- Se accedió a la información contenida en S3 y una vez dentro, se descargaron 5 carpetas diferentes para probar la función. Las instrucciones de descarga de S3 a la máquina fueron de la siguiente manera:
+
+Archivo 1:
+
+s3cmd sync s3://einformativa/biblioteca_arte/la_familia_de_sorjuana_ines_de_la_cruz/pdf ~/Desktop/einformativa/la_familia_de_sorjuana_ines_de_la_cruz
+
+Archivo 2:
+
+s3cmd sync s3://einformativa/biblioteca_arte/nuestra_patria_geografia_elemental_de_la_republica_elemental_1910/pdf ~/Desktop/einformativa/nuestra_patria_geografia_elemental_de_la_republica_elemental_1910
+
+Archivo 3:
+
+s3cmd sync s3://einformativa/biblioteca_arte/la_charreria_1933-1983/pdf ~/Desktop/einformativa/la_charreria_1933-1983
+
+Archivo 4:
+
+s3cmd sync s3://einformativa/biblioteca_arte/la_junta_de_zitacuaro/pdf ~/Desktop/einformativa/la_junta_de_zitacuaro
+
+Archivo 5:
+
+s3cmd sync s3://einformativa/biblioteca_arte/savinio_opere_su_carta_1925-1952/pdf ~/Desktop/einformativa/savinio_opere_su_carta_1925-1952
+
+
+Cabe destacar que es necesario crear una carpeta dentro de tu ruta donde se va a depositar cada archivo extraído de S3.
+
+
+2- Una vez descargada la información, se procedió a clocar el repositorio https://github.com/felipegerard/arte_mexicano/tree/master/felipegerard/code/prueba2 el cuál contiene la función  parallel_pdftotext.sh 
+
+La manera en que funciona la función es de la siguiente forma:
+
+./parallel_pdftotext.sh -f ~/Ruta/pdf  -t ~/Ruta/txt
+
+Entonces, la información será depositada dentro de una carpeta previamente creada con terminación /txt
+
+Las 5 pruebas se realizaron de la siguiente manera:
+
+
+Prueba 1
+
+
+
+$ ./parallel_pdftotext.sh -f ~/Desktop/einformativa/savinio_opere_su_carta_1925-1952/pdf  -t ~/Desktop/einformativa/savinio_opere_su_carta_1925-1952/txt
+Carpeta de origen:   /Users/carlosmunguia/Desktop/einformativa/savinio_opere_su_carta_1925-1952/pdf
+Carpeta de destino:  /Users/carlosmunguia/Desktop/einformativa/savinio_opere_su_carta_1925-1952/txt
+Numero de nucleos:   4
+Otros args parallel:
+
+
+Se tiene dentro de la carpeta origen la misma cantidad de ítems. (131)
+
+Prueba 2
+
+
+$ ./parallel_pdftotext.sh -f ~/Desktop/einformativa/la_familia_de_sorjuana_ines_de_la_cruz/pdf  -t ~/Desktop/einformativa/la_familia_de_sorjuana_ines_de_la_cruz/txt
+Carpeta de origen:   /Users/carlosmunguia/Desktop/einformativa/la_familia_de_sorjuana_ines_de_la_cruz/pdf
+Carpeta de destino:  /Users/carlosmunguia/Desktop/einformativa/la_familia_de_sorjuana_ines_de_la_cruz/txt
+Numero de nucleos:   4
+Otros args parallel:
+
+
+Se tiene dentro de la carpeta origen la misma cantidad de ítems. (179)
+
+Prueba 3
+
+
+carlosmunguia at MacBook-Pro-de-Carlos-2 in ~/Desktop/einformativa/prueba2
+$ ./parallel_pdftotext.sh -f ~/Desktop/einformativa/nuestra_patria_geografia_elemental_de_la_republica_elemental_1910/pdf  -t ~/Desktop/einformativa/nuestra_patria_geografia_elemental_de_la_republica_elemental_1910/txt
+Carpeta de origen:   /Users/carlosmunguia/Desktop/einformativa/nuestra_patria_geografia_elemental_de_la_republica_elemental_1910/pdf
+Carpeta de destino:  /Users/carlosmunguia/Desktop/einformativa/nuestra_patria_geografia_elemental_de_la_republica_elemental_1910/txt
+Numero de nucleos:   4
+Otros args parallel:
+
+
+Se tiene dentro de la carpeta origen la misma cantidad de ítems. (85)
+
+Prueba 4
+
+
+carlosmunguia at MacBook-Pro-de-Carlos-2 in ~/Desktop/einformativa/prueba2
+$ ./parallel_pdftotext.sh -f ~/Desktop/einformativa/la_charreria_1933-1983/pdf  -t ~/Desktop/einformativa/la_charreria_1933-1983/txt
+Carpeta de origen:   /Users/carlosmunguia/Desktop/einformativa/la_charreria_1933-1983/pdf
+Carpeta de destino:  /Users/carlosmunguia/Desktop/einformativa/la_charreria_1933-1983/txt
+Numero de nucleos:   4
+Otros args parallel:
+Academic tradition requires
+
+
+Se tiene dentro de la carpeta origen la misma cantidad de ítems.  (374)
+
+
+Prueba 5
+
+
+
+carlosmunguia at MacBook-Pro-de-Carlos-2 in ~/Desktop/einformativa/prueba2
+$ ./parallel_pdftotext.sh -f ~/Desktop/einformativa/la_junta_de_zitacuaro/pdf  -t ~/Desktop/einformativa/la_junta_de_zitacuaro/txt
+Carpeta de origen:   /Users/carlosmunguia/Desktop/einformativa/la_junta_de_zitacuaro/pdf
+Carpeta de destino:  /Users/carlosmunguia/Desktop/einformativa/la_junta_de_zitacuaro/txt
+Numero de nucleos:   4
+Otros args parallel:
+
+
+Se tiene dentro de la carpeta origen la misma cantidad de ítems. (169)
+
+
+En todas las pruebas se obtuvieron el mismo número de txt´s que de pdf´s contenidos en cada una de las carpetas.
+
+La información es consistente en cuanto a la extracción del texto.
+
+
+A modo de ejemplo, sólo se agregará una carpeta de una prueba en el github.
+
+
+
+
+
+####################################################################################
+
+
+Segunda prueba 27 de Junio 2015
+
+
+
+
+Se modificó la función paralelo para que fuera iterativa y se ejecutara en todos los libros.
+
+La prueba fue exitosa y se ejecutó de la siguiente manera:
+
+carlosmunguia at MacBook-Pro-de-Carlos-2 in ~/Desktop/einformativa/prueba3
+$ ./mass_pdftotext.sh -f ~/Desktop/einformativa
+
+###############################################################################
+
+Academic tradition requires you to cite works you base your article on.
+When using programs that use GNU Parallel to process data for publication
+please cite:
+
+  O. Tange (2011): GNU Parallel - The Command-Line Power Tool,
+  ;login: The USENIX Magazine, February 2011:42-47.
+
+This helps funding further development; and it won't cost you a cent.
+If you pay 10000 EUR you should feel free to use GNU Parallel without citing.
+
+Silence the citation notice: run 'parallel --bibtex' once or use '--will-cite'.
+
+Academic tradition requires you to cite works you base your article on.
+When using programs that use GNU Parallel to process data for publication
+please cite:
+
+  O. Tange (2011): GNU Parallel - The Command-Line Power Tool,
+  ;login: The USENIX Magazine, February 2011:42-47.
+
+This helps funding further development; and it won't cost you a cent.
+If you pay 10000 EUR you should feel free to use GNU Parallel without citing.
+
+Silence the citation notice: run 'parallel --bibtex' once or use '--will-cite'.
+
+Academic tradition requires you to cite works you base your article on.
+When using programs that use GNU Parallel to process data for publication
+please cite:
+
+  O. Tange (2011): GNU Parallel - The Command-Line Power Tool,
+  ;login: The USENIX Magazine, February 2011:42-47.
+
+This helps funding further development; and it won't cost you a cent.
+If you pay 10000 EUR you should feel free to use GNU Parallel without citing.
+
+Silence the citation notice: run 'parallel --bibtex' once or use '--will-cite'.
+
+Academic tradition requires you to cite works you base your article on.
+When using programs that use GNU Parallel to process data for publication
+please cite:
+
+  O. Tange (2011): GNU Parallel - The Command-Line Power Tool,
+  ;login: The USENIX Magazine, February 2011:42-47.
+
+This helps funding further development; and it won't cost you a cent.
+If you pay 10000 EUR you should feel free to use GNU Parallel without citing.
+
+Silence the citation notice: run 'parallel --bibtex' once or use '--will-cite'.
+
+Academic tradition requires you to cite works you base your article on.
+When using programs that use GNU Parallel to process data for publication
+please cite:
+
+  O. Tange (2011): GNU Parallel - The Command-Line Power Tool,
+  ;login: The USENIX Magazine, February 2011:42-47.
+
+This helps funding further development; and it won't cost you a cent.
+If you pay 10000 EUR you should feel free to use GNU Parallel without citing.
+
+Silence the citation notice: run 'parallel --bibtex' once or use '--will-cite'.
+
+
+
+Los resultados fueron consistentes con el número de ítems de cada libro. Cabe destacar que para esta versión, ya no es necesario crear una carpeta origen /txt, ya que la función la crea por sí misma.
+
+Para Mac es necesario tener instalado 
+
+
+$ brew install coreutils
+
+$ brew install gnu-sed
+
+
+Se anexa al github una sola carpeta de prueba perteneciente a la ejecución de la función “mass_pdftotext.sh“.
+
