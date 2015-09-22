@@ -26,7 +26,10 @@ $ pip install pdfminer
 + LSA (requiere stopwords?)
 + Similitudes
 + XMLs DSpace
-+ Paralelizar. Por ejemplo por idioma
+
+## Trabajo futuro
++ Paralelizar por idioma (checar que alcance la memoria)
++ Mejorar el uso de Gensim, por ejemplo para actualizar en lugar de reescribir, etc.
 
 ## OJO
 + Toman las primeras 6 letras de las palabras como tipo stemming simple.
