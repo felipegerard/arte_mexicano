@@ -18,6 +18,7 @@ from pprint import pprint
 # import time, datetime
 
 execfile('functions/helper_functions.py')
+execfile('jared/data_flow_jared_modif.py')
 
 
 # ----------------------------------------------------------------
@@ -36,19 +37,35 @@ class ReadText(luigi.Task):
 	book_name = luigi.Parameter()
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 
 	def requires(self):
 		pdf_bookdir = os.path.join(self.pdf_dir, self.book_name)
-		return InputPDF(pdf_bookdir)
+		return {
+					'pdf':InputPDF(pdf_bookdir),
+					'images':IdentificarImagenes(self.book_name,self.jpg_dir,self.image_meta_dir)
+				}
 
 	def output(self):
 		return luigi.LocalTarget(os.path.join(self.txt_dir,self.meta_dir,self.book_name+'.meta'))
 		
 	def run(self):
 		# Extraer textos
-		idioma, contenido = extraerVolumen(self.input())
+		with self.input()['images'].open('r') as f:
+			lista_negra = f.read().split('\n')
+			lista_negra = [i + '.pdf' for i in lista_negra]
+		#rutaVolumenes = obtenerRutaVolumenes(inputPDF.path)
+		ruta_pdfs = self.input()['pdf'].path
+		lista_pdfs = [x for x in os.listdir(ruta_pdfs) if ".pdf" in x]
+		rutaVolumenes = [os.path.join(ruta_pdfs,i) for i in lista_pdfs if i not in lista_negra]
+		pprint(lista_negra)
+		pprint(lista_pdfs)
+		pprint(rutaVolumenes)
+		contenido = convertirVolumenes(rutaVolumenes)
+		idioma = detectarIdioma(contenido)
 		lang_path = os.path.join(self.txt_dir,idioma)
 		save_content(lang_path, self.book_name, contenido)
 
@@ -64,16 +81,20 @@ class CleanText(luigi.Task):
 	book_name = luigi.Parameter()
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	clean_level = luigi.Parameter(default='raw,clean,stopwords')
 
 	def requires(self):
-		return ReadText(book_name=self.book_name,
-						pdf_dir=self.pdf_dir,
-						txt_dir=os.path.join(self.txt_dir, 'raw'),
-						meta_dir=self.meta_dir,
-						meta_file=self.meta_file)
+		return ReadText(book_name = self.book_name,
+						pdf_dir = self.pdf_dir,
+						txt_dir = os.path.join(self.txt_dir, 'raw'),
+						jpg_dir = self.jpg_dir,
+						image_meta_dir = self.image_meta_dir,
+						meta_dir = self.meta_dir,
+						meta_file = self.meta_file)
 
 	def output(self):
 		flags = self.clean_level.split(',')
@@ -119,14 +140,22 @@ class CleanText(luigi.Task):
 class DetectLanguages(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
 	lang_file = luigi.Parameter(default='idiomas.tm')
 	clean_level = luigi.Parameter(default='raw,clean,stopwords')
 
 	def requires(self):
-		return [CleanText(book_name, self.pdf_dir, self.txt_dir, self.meta_dir,
-						self.meta_file, self.clean_level)
+		return [CleanText(book_name=book_name,
+						  pdf_dir=self.pdf_dir,
+						  txt_dir=self.txt_dir,
+						  jpg_dir = self.jpg_dir,
+						  image_meta_dir = self.image_meta_dir,
+						  meta_dir=self.meta_dir,
+						  meta_file=self.meta_file,
+						  clean_level=self.clean_level)
 				for book_name in os.listdir(self.pdf_dir)]
 
 	def output(self):
@@ -158,6 +187,8 @@ class DetectLanguages(luigi.Task):
 class GenerateDictionary(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
@@ -180,6 +211,8 @@ class GenerateDictionary(luigi.Task):
 
 		return DetectLanguages(pdf_dir=self.pdf_dir,
 							  txt_dir=self.txt_dir,
+							  jpg_dir = self.jpg_dir,
+							  image_meta_dir = self.image_meta_dir,
 							  meta_dir=self.meta_dir,
 							  meta_file=self.meta_file,
 							  lang_file=self.lang_file,
@@ -245,6 +278,8 @@ class GenerateDictionary(luigi.Task):
 class GenerateCorpus(luigi.Task):
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
@@ -257,6 +292,8 @@ class GenerateCorpus(luigi.Task):
 	def requires(self):
 		return GenerateDictionary(pdf_dir=self.pdf_dir,
 								  txt_dir=self.txt_dir,
+								  jpg_dir = self.jpg_dir,
+								  image_meta_dir = self.image_meta_dir,
 								  model_dir=self.model_dir,
 								  meta_dir=self.meta_dir,
 								  meta_file=self.meta_file,
@@ -318,6 +355,8 @@ class TrainLDA(luigi.Task):
 	
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
@@ -332,6 +371,8 @@ class TrainLDA(luigi.Task):
 		return {
 					'dict':GenerateDictionary(pdf_dir=self.pdf_dir,
 											  txt_dir=self.txt_dir,
+											  jpg_dir = self.jpg_dir,
+											  image_meta_dir = self.image_meta_dir,	
 											  model_dir=self.model_dir,
 											  meta_dir=self.meta_dir,
 											  meta_file=self.meta_file,
@@ -342,6 +383,8 @@ class TrainLDA(luigi.Task):
 											  min_docs_per_lang=self.min_docs_per_lang),
 					'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
 										  txt_dir=self.txt_dir,
+										  jpg_dir = self.jpg_dir,
+										  image_meta_dir = self.image_meta_dir,
 										  model_dir=self.model_dir,
 										  meta_dir=self.meta_dir,
 										  meta_file=self.meta_file,
@@ -417,6 +460,8 @@ class PredictLDA(luigi.Task):
 	#variables de corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
@@ -435,6 +480,8 @@ class PredictLDA(luigi.Task):
 							n_passes=self.n_passes,
 							pdf_dir=self.pdf_dir,
 							txt_dir=self.txt_dir,
+							jpg_dir = self.jpg_dir,
+							image_meta_dir = self.image_meta_dir,
 							model_dir=self.model_dir,
 							meta_dir=self.meta_dir,
 							meta_file=self.meta_file,
@@ -446,6 +493,8 @@ class PredictLDA(luigi.Task):
 
 				'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
 									  txt_dir=self.txt_dir,
+									  jpg_dir = self.jpg_dir,
+									  image_meta_dir = self.image_meta_dir,
 									  model_dir=self.model_dir,
 									  meta_dir=self.meta_dir,
 									  meta_file=self.meta_file,
@@ -520,6 +569,8 @@ class TrainLSI(luigi.Task):
 	
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
@@ -534,6 +585,8 @@ class TrainLSI(luigi.Task):
 		return {
 					'dict':GenerateDictionary(pdf_dir=self.pdf_dir,
 											  txt_dir=self.txt_dir,
+											  jpg_dir = self.jpg_dir,
+											  image_meta_dir = self.image_meta_dir,
 											  model_dir=self.model_dir,
 											  meta_dir=self.meta_dir,
 											  meta_file=self.meta_file,
@@ -544,6 +597,8 @@ class TrainLSI(luigi.Task):
 											  min_docs_per_lang=self.min_docs_per_lang),
 					'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
 										  txt_dir=self.txt_dir,
+										  jpg_dir = self.jpg_dir,
+										  image_meta_dir = self.image_meta_dir,
 										  model_dir=self.model_dir,
 										  meta_dir=self.meta_dir,
 										  meta_file=self.meta_file,
@@ -627,6 +682,8 @@ class GroupByLSI(luigi.Task):
 	#GenerateCorpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
+	jpg_dir = luigi.Parameter()
+	image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
@@ -641,6 +698,8 @@ class GroupByLSI(luigi.Task):
 		return TrainLSI(topic_range=self.topic_range,
 						pdf_dir=self.pdf_dir,
 						txt_dir=self.txt_dir,
+						jpg_dir = self.jpg_dir,
+						image_meta_dir = self.image_meta_dir,
 						model_dir=self.model_dir,
 						meta_dir=self.meta_dir,
 						meta_file=self.meta_file,

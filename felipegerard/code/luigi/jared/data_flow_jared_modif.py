@@ -57,11 +57,14 @@ class IdentificarImagenes(luigi.Task):
 		resultado = []
 		for jpg in jpgs_lib:
 			ruta_jpg = os.path.join(self.input().path,jpg)
-			print ruta_jpg
+			print '====================='
+			print 'USER INFO: ' + ruta_jpg
 			try:
 				pagina = misc.imread(ruta_jpg)
 				pagina = rgb2gray(pagina)
-				if pagina.var()>5000:
+				print 'USER INFO: Var = ', pagina.var()
+				print '====================='
+				if pagina.var()>1000:#5000:
 					resultado.append(jpg.replace('.jpg',''))
 			except:
 				1
