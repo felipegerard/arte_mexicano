@@ -10,7 +10,15 @@ import shutil
 import skimage.io as io
 from skimage.color import rgb2gray
 from skimage.filters import gaussian_filter
+import subprocess
+from sklearn.decomposition import TruncatedSVD
+from scipy.sparse import csr_matrix
+from sklearn.cluster import KMeans
 
+def image_vec(pagina):
+    pagina = misc.imread(pagina)
+    pagina_2 = rgb2gray(pagina)
+    return pagina_2.reshape(1,60000)
 
 class CarpetaLibro(luigi.ExternalTask):
 	"""
@@ -64,19 +72,21 @@ class IdentificarImagenes(luigi.Task):
 				if pagina.var() > self.varianza:
 					resultado.append(ruta_jpg)
 			except:
-				print "Error al abrir el archivo" + self.input().path + jpg
+				pass
 				
 		
 		resultado = '\n'.join(resultado)
 		with self.output().open("w") as f:
 			f.write(resultado)
 
-class CopiarTodasImagenes(luigi.Task):
+class CopiarImagenesReducir(luigi.Task):
 	"""
-	Este proceso va a hacer una copia de la pintura a otra carpeta
+	Este proceso va a hacer una copia de los jpgs que se detecto
+	con imagenes a otra carpeta y luego los va a reducir de tamano
+	a 200x300
 	"""
+
 	input_dir = luigi.Parameter()
-	carpeta_lib = luigi.Parameter()
 	output_dir = luigi.Parameter(default = 'Salidas')
 	varianza = luigi.FloatParameter(default=0.05)
 	output_dir_imag = luigi.Parameter(default = 'Imagenes')
@@ -114,80 +124,65 @@ class CopiarTodasImagenes(luigi.Task):
 		for imagen in imagenes:
 			shutil.copy2(imagen[0], directorio_salida)
 
+		subprocess.call('bash reducir_imagenes.sh' + " " + directorio_salida, shell = True)
 
 
-
-
-class CopiarUnaImagen(luigi.Task):
+class SacarClusters(luigi.Task):
 	"""
-	Este proceso va a hacer una copia de la pintura a otra carpeta
+	En este proceso voy a hacer SVD y quedarme con un numero de
+	componentes para despues hacer K-means y sacar clusters
 	"""
+
 	input_dir = luigi.Parameter()
-	carpeta_lib = luigi.Parameter()
 	output_dir = luigi.Parameter(default = 'Salidas')
 	varianza = luigi.FloatParameter(default=0.05)
 	output_dir_imag = luigi.Parameter(default = 'Imagenes')
+	num_clusters = luigi.IntParameter(default = 5)
+	components = luigi.IntParameter(default = 8)
 
 	def requires(self):
-		return IdentificarImagenes(self.input_dir,self.carpeta_lib)
-	
+		return CopiarImagenesReducir(self.input_dir)
+
 	def output(self):
-		directorio_salida = os.path.join(self.output_dir, self.output_dir_imag)
-
-		try:
-			imagenes = []
-			with open(self.input().path, 'rb') as csvfile:
-				leer = csv.reader(csvfile, delimiter=' ', quotechar='\n')
-				for row in leer:
-					imagenes.append(row)
-
-			return [luigi.LocalTarget(os.path.join(directorio_salida,re.split("/",doc[0])[-1])) for doc in imagenes]
-		except:
-			return luigi.LocalTarget(os.path.join(directorio_salida,"dummy.csv"))
+		return luigi.LocalTarget("clusters.csv")
 
 	def run(self):
 		imagenes = []
-		with open(self.input().path, 'rb') as csvfile:
-			leer = csv.reader(csvfile, delimiter=' ', quotechar='\n')
-			for row in leer:
-				imagenes.append(row)
+		for imagen in self.input():
+			imagenes.append(imagen.path)
 
-		directorio_salida = os.path.join(self.output_dir, self.output_dir_imag)
-		if not os.path.exists(directorio_salida):
-			os.makedirs(os.path.join(self.output_dir, self.output_dir_imag))
-			print 'USER INFO: Creando carpeta de listas de archivos con imagenes en ' + self.output_dir_imag
+		mat_pin = [image_vec(pagina)[0] for pagina in imagenes]
+		#mat_pin = np.array(mat_pin)/256
+		#mat_pin = mat_pin.round()
+		#mat_pin = csr_matrix(mat_pin)
 
-		for imagen in imagenes:
-			shutil.copy2(imagen[0], directorio_salida)
+		svd = TruncatedSVD(n_components=self.components, random_state=42)
 
-class CopiarImagenesReducir(luigi.Task):
-	"""
-	Este proceso va a crear un listado con los nombres de 
-	todos los libros en un diccionario
-	"""
-	input_dir = luigi.Parameter()
+		X = svd.fit_transform(mat_pin) 
 
-	def requires(self):
-		return CopiarImagenes(self.input_dir)
-	
-	def output(self):
-		imagenes = []
-		with open(self.input().path, 'rb') as csvfile:
-			leer = csv.reader(csvfile, delimiter=' ', quotechar='\n')
-			for row in leer:
-				imagenes.append(row)
+		print(svd.explained_variance_ratio_)
+		print(svd.explained_variance_ratio_.sum())
 
-		return [luigi.LocalTarget(os.path.join(re.split("/",doc[0])[0],"Imagenes",re.split("/",doc[0])[-1])) for doc in imagenes]
+		km = KMeans(n_clusters=self.num_clusters, init='k-means++', max_iter=100, n_init=1)
 
-	def run(self):
-		imagenes = []
-		with open(self.input().path, 'rb') as csvfile:
-			leer = csv.reader(csvfile, delimiter=' ', quotechar='\n')
-			for row in leer:
-				imagenes.append(row)
-		
-		for imagen in imagenes:
-			shutil.copy2(imagen[0], self.input_dir + "/Imagenes")
+		km.fit(X)
+
+		for i in range(self.num_clusters):
+			newpath = os.path.join(self.output_dir,self.output_dir_imag,"cluster_") + str(i)
+			if not os.path.exists(newpath): os.makedirs(newpath)
+
+		imag = os.listdir(os.path.join(self.output_dir,self.output_dir_imag))
+		for i in range(len(imagenes)):
+		    os.rename(imagenes[i], os.path.join(self.output_dir,self.output_dir_imag,"cluster_") + str(km.labels_[i]) + "/" + str(imag[i]))
+
+		clusters = []
+		for i in range(len(km.labels_)):
+			clusters.append([imagenes[i],km.labels_[i]])
+
+		with self.output().open("w") as output:
+		    writer = csv.writer(output, lineterminator='\n')
+		    for val in clusters:
+		        writer.writerow(val)
 
 if __name__ == '__main__':
 	luigi.run()
