@@ -10,12 +10,12 @@ from collections import defaultdict
 from pprint import pprint
 
 def rgb2gray(rgb):
-			"""
-			Convertir imagenes en escala de grises
-			"""
-			r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
-			gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-			return gray
+	"""
+	Convertir imagenes en escala de grises
+	"""
+	r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
+	gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+	return gray
 
 class CarpetaLibro(luigi.ExternalTask):
 	"""
@@ -67,7 +67,7 @@ class IdentificarImagenes(luigi.Task):
 				if pagina.var()>1000:#5000:
 					resultado.append(jpg.replace('.jpg',''))
 			except:
-				1
+				print 'USER WARNING: No se pudo leer la imagen ' + ruta_jpg
 
 		resultado = '\n'.join(resultado)
 		with self.output().open("w") as f:
