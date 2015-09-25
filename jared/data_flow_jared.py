@@ -157,7 +157,7 @@ class SacarClusters(luigi.Task):
 		#de la imagen y el cluster al que pertenece
 		#El nombre del cluster depende de cuantos libros 
 		#haya en la carpeta de entrada, para que cuando pongan
-		#mas libros se cree un nuevo cluster.
+		#makedirss libros se cree un nuevo cluster.
 		imagenes = [x for x in os.listdir(self.input_dir)]
 		return luigi.LocalTarget(os.path.join(self.output_dir, 
 			str(len(imagenes)) + "_libros_"+"clusters.csv"))
@@ -208,6 +208,10 @@ class SacarClusters(luigi.Task):
 		    writer = csv.writer(output, lineterminator='\n')
 		    for val in clusters:
 		        writer.writerow(val)
+
+		with open(self.output_dir + "/componentes.csv", "wb") as f:
+			writer = csv.writer(f)
+			writer.writerows(X)
 
 if __name__ == '__main__':
 	luigi.run()
