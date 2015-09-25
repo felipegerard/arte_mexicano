@@ -14,17 +14,12 @@ import subprocess
 from sklearn.decomposition import TruncatedSVD
 from scipy.sparse import csr_matrix
 from sklearn.cluster import KMeans
+from itertools import chain
 
 def image_vec(pagina):
-    pagina = misc.imread(pagina)
+    pagina = io.imread(pagina)
     pagina_2 = rgb2gray(pagina)
     return pagina_2.reshape(1,60000)
-
-def is_jpg(filename):
-    data = open(filename,'rb').read(11)
-    if data[:4] != '\xff\xd8\xff\xe0': return False
-    if data[6:] != 'JFIF\0': return False
-    return True    
 
 class CarpetaLibro(luigi.ExternalTask):
 	"""
@@ -116,7 +111,7 @@ class CopiarImagenReducir(luigi.Task):
 			if len(imagenes) > 0:
 				return [luigi.LocalTarget(os.path.join(directorio_salida,re.split("/",doc[0])[-1])) for doc in imagenes]
 			else:
-				return luigi.LocalTarget(self.input().path)
+				return luigi.LocalTarget(os.path.join(self.output_dir,"sin_imagen.csv"))
 		except:
 			luigi.LocalTarget(os.path.join(directorio_salida,"dummy.jpg"))
 
@@ -127,14 +122,18 @@ class CopiarImagenReducir(luigi.Task):
 			for row in leer:
 				imagenes.append(row)
 
-		directorio_salida = os.path.join(self.output_dir, self.output_dir_imag)
-		if not os.path.exists(directorio_salida):
-			os.makedirs(os.path.join(self.output_dir, self.output_dir_imag))
-			print 'USER INFO: Creando carpeta de listas de archivos con imagenes en ' + self.output_dir_imag
+		if len(imagenes) > 0:		
+			directorio_salida = os.path.join(self.output_dir, self.output_dir_imag)
+			if not os.path.exists(directorio_salida):
+				os.makedirs(os.path.join(self.output_dir, self.output_dir_imag))
+				print 'USER INFO: Creando carpeta de listas de archivos con imagenes en ' + self.output_dir_imag
 
-		for imagen in imagenes:
-			shutil.copy2(imagen[0], directorio_salida)
-			subprocess.call('bash reducir_imagenes.sh' + " " + os.path.join(directorio_salida,re.split("/",imagen[0])[-1]), shell = True)
+			for imagen in imagenes:
+				shutil.copy2(imagen[0], directorio_salida)
+				subprocess.call('bash reducir_imagenes.sh' + " " + os.path.join(directorio_salida,re.split("/",imagen[0])[-1]), shell = True)
+		else:
+			with self.output().open('w') as f:
+				f.write('Sin imagenes')
 
 class SacarClusters(luigi.Task):
 	"""
@@ -154,17 +153,22 @@ class SacarClusters(luigi.Task):
 			self.varianza,self.output_dir_imag) for x in os.listdir(self.input_dir)]
 
 	def output(self):
-		return luigi.LocalTarget(os.path.join(self.input_dir,self.output_dir,"clusters.csv"))
+		#Crea un csv cada que hace clusters, con la lista
+		#de la imagen y el cluster al que pertenece
+		#El nombre del cluster depende de cuantos libros 
+		#haya en la carpeta de entrada, para que cuando pongan
+		#mas libros se cree un nuevo cluster.
+		imagenes = [x for x in os.listdir(self.input_dir)]
+		return luigi.LocalTarget(os.path.join(self.output_dir, 
+			str(len(imagenes)) + "_libros_"+"clusters.csv"))
 
 	def run(self):
 		print "colectando imagenes" 
-		imagenes = []
-		for imagen in self.input():
-			if not os.path.isdir(imagen):
-				imagenes.append(imagen.path)
-			
+		imagenes = [x for x in os.listdir(os.path.join(self.output_dir,self.output_dir_imag)) if ".jpg" in x]
+		imagenes_path = [os.path.join(self.output_dir, self.output_dir_imag, pagina) for pagina in imagenes]
+		
 		print "conviriendo a vector"	
-		mat_pin = [image_vec(pagina)[0] for pagina in imagenes]
+		mat_pin = [image_vec(pagina_path)[0] for pagina_path in imagenes_path]
 		#mat_pin = np.array(mat_pin)/256
 		#mat_pin = mat_pin.round()
 		#mat_pin = csr_matrix(mat_pin)
@@ -172,7 +176,7 @@ class SacarClusters(luigi.Task):
 		print "Sacando SVD"
 		svd = TruncatedSVD(n_components=self.components, random_state=42)
 
-		X = svd.fit_transform(mat_pin) 
+		X = svd.fit_transform(mat_pin)
 
 		print(svd.explained_variance_ratio_)
 		print(svd.explained_variance_ratio_.sum())
@@ -183,14 +187,21 @@ class SacarClusters(luigi.Task):
 		km.fit(X)
 
 		print "Guardando a un directorio de cluster"
-		for i in range(self.num_clusters):
-			newpath = os.path.join(self.output_dir,self.output_dir_imag,"cluster_") + str(i)
-			if not os.path.exists(newpath): os.makedirs(newpath)
 
-		imag = os.listdir(os.path.join(self.output_dir,self.output_dir_imag))
+		for i in range(self.num_clusters):
+			newpath = self.output_dir + "/cluster_" + str(i) 
+			if os.path.exists(newpath):
+				#Borro el directorio porque si meto informacion nueva, 
+				#los clusters no necesariamente van a ser los mismos
+				# en que cuando se crearon en un proceso pasado 
+				shutil.rmtree(newpath)
+				os.makedirs(newpath)
+			else:
+				os.makedirs(newpath)
+
 		clusters = []
 		for i in range(len(imagenes)):
-		    os.rename(imagenes[i], os.path.join(self.output_dir,self.output_dir_imag,"cluster_") + str(km.labels_[i]) + "/" + str(imag[i]))
+		    shutil.copy2(imagenes_path[i], self.output_dir + "/cluster_" + str(km.labels_[i])) 
 		    clusters.append([imagenes[i],km.labels_[i]])
 		
 		with self.output().open("w") as output:
