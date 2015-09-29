@@ -33,14 +33,16 @@ class InputPDF(luigi.ExternalTask):
 
 # Extract raw text
 class ReadText(luigi.Task):
-	'''Extraer texto de los PDFs y guardarlo en formato crudo'''
-	book_name = luigi.Parameter()
-	pdf_dir = luigi.Parameter()
-	txt_dir = luigi.Parameter()
-	jpg_dir = luigi.Parameter()
-	image_meta_dir = luigi.Parameter()
-	meta_dir = luigi.Parameter(default='meta')
-	meta_file = luigi.Parameter(default='librosAgregados.tm')
+	'''Extraer texto de los PDFs de un libro,
+	pegarlos en un solo archivo en formato crudo
+	y guardar el resultado'''
+	book_name = luigi.Parameter()		# Nombre del libro
+	pdf_dir = luigi.Parameter() 		# Carpeta de PDFs
+	txt_dir = luigi.Parameter()			# Carpeta de textos
+	jpg_dir = luigi.Parameter()			# Carpeta de JPGs
+	image_meta_dir = luigi.Parameter()	# Carpeta con archivos de metadatos para definir qué archivos son imágenes
+	meta_dir = luigi.Parameter(default='meta')	# Nombre del archivo de metadatos
+	meta_file = luigi.Parameter(default='librosAgregados.tm') # Nombre del archivo de metadatos libro-idioma
 
 	def requires(self):
 		pdf_bookdir = os.path.join(self.pdf_dir, self.book_name)
@@ -77,7 +79,8 @@ class ReadText(luigi.Task):
 
 # Clean text
 class CleanText(luigi.Task):
-	'''Limpiar el texto según el nivel de limpieza deseado para la aplicación'''
+	'''Limpiar el texto de un libro según el nivel de limpieza deseado
+	y guardarlo en su carpeta correspondiente'''
 	book_name = luigi.Parameter()
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
@@ -85,7 +88,7 @@ class CleanText(luigi.Task):
 	image_meta_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	clean_level = luigi.Parameter(default='raw,clean,stopwords')
+	clean_level = luigi.Parameter(default='raw,clean,stopwords') # Nivel de limpieza. Cualquier combinación de 'raw', 'clean' y 'stopwords', separados por comas
 
 	def requires(self):
 		return ReadText(book_name = self.book_name,
@@ -138,6 +141,8 @@ class CleanText(luigi.Task):
 
 # Detect languages and write language metadata. Possibly obsolete
 class DetectLanguages(luigi.Task):
+	'''Detectar idiomas de los libros y escribir archivo
+	con los nombres de todos los idiomas detectados'''
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	jpg_dir = luigi.Parameter()
@@ -185,18 +190,19 @@ class DetectLanguages(luigi.Task):
 
 # Generate dictionary for each language and cleanliness level
 class GenerateDictionary(luigi.Task):
+	'''Genera un diccionario por idioma'''
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	jpg_dir = luigi.Parameter()
 	image_meta_dir = luigi.Parameter()
-	model_dir = luigi.Parameter()
+	model_dir = luigi.Parameter()		# Carpeta donde se guardan los modelos
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	lang_file = luigi.Parameter(default='idiomas.tm')	# Solo para tener el registro
 	clean_level = luigi.Parameter(default='stopwords')
-	languages = luigi.Parameter()
-	max_word_length = luigi.IntParameter(default=6)
-	min_docs_per_lang = luigi.IntParameter(default=1)
+	languages = luigi.Parameter()						# Idiomas a procesar
+	max_word_length = luigi.IntParameter(default=6)		# Máxima longitud de las palabras. Palabras más largas se truncan
+	min_docs_per_lang = luigi.IntParameter(default=1)	# Mínimo número de documentos por idioma para procesar el idioma
 	
 	def requires(self):
 		if self.clean_level == 'raw':
@@ -219,7 +225,7 @@ class GenerateDictionary(luigi.Task):
 							  clean_level=flags)
 
 	def output(self):
-		idiomas_permitidos = ['spanish','english','french','italian','german']
+		idiomas_permitidos = ['spanish','english','french','italian','german'] # Idiomas fuera de esta lista no se procesan
 		idiomas = self.languages.split(',')
 		idiomas = [i for i in idiomas if i in idiomas_permitidos]
 		if self.clean_level in ('raw','clean','stopwords'):
@@ -235,7 +241,6 @@ class GenerateDictionary(luigi.Task):
 					'files':self.input()['files']
 				}
 		return output
-		# return luigi.LocalTarget(self.txt_dir + '/idiomas.txt')
 
 	def run(self):
 		print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
@@ -252,13 +257,15 @@ class GenerateDictionary(luigi.Task):
 			print '=========================='
 			print 'Generando diccionario de ' + idioma
 
-			rutaTextos = os.path.join(self.txt_dir,kind,idioma)#self.input()['clean_level'],idioma)
+			# Obtener rutas de textos por idioma y nivel de limpieza
+			rutaTextos = os.path.join(self.txt_dir,kind,idioma)
 			print rutaTextos
 			if os.path.exists(rutaTextos):
 				ndocs = len(os.listdir(rutaTextos)) 
 			else:
 				ndocs = 0
 
+			# Crear carpeta de modelos si no existen
 			if ndocs < self.min_docs_per_lang:
 				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma" + idioma
 				continue
@@ -276,6 +283,7 @@ class GenerateDictionary(luigi.Task):
 
 # Generate corpus for each language and cleanliness level
 class GenerateCorpus(luigi.Task):
+	'''Genera un corpus por idioma'''
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	jpg_dir = luigi.Parameter()
@@ -283,7 +291,7 @@ class GenerateCorpus(luigi.Task):
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	lang_file = luigi.Parameter(default='idiomas.tm')
 	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
 	max_word_length = luigi.IntParameter(default=6)
@@ -329,6 +337,7 @@ class GenerateCorpus(luigi.Task):
 			print 'Generando corpus de ' + idioma
 			rutaTextos = os.path.join(self.txt_dir,kind,idioma)
 			
+			# Generar el corpus
 			nombre_corpus = self.output()['langs'][idioma].path
 			ruta_diccionario = self.input()['langs'][idioma].path
 			generadorCorpus = GeneradorCorpus(rutaTextos, ruta_diccionario, self.max_word_length)
@@ -343,16 +352,17 @@ from gensim.models.ldamodel import LdaModel
 import pickle
 
 class TrainLDA(luigi.Task):
-	"""Necesita corpus limpio por 
-	idioma sin las stopwords
-	viene del proceso de VECTORIZE"""
-	# date_interval = luigi.DateIntervalParameter()
-	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
-	by_chunks = luigi.BoolParameter(default=False)
-	chunk_size = luigi.IntParameter(default=100)
-	update_e = luigi.IntParameter(default = 0)
-	n_passes = luigi.IntParameter(default=10) #numero de pasadas al corpus
+	'''Entrena varios modelos LDA que luego serán analizados'''
+	# Parámetros LDA
+	topic_range = luigi.Parameter(default='30,31,1')	# Número de topicos. Debe ser una lista de tres números, separados por comas, como las entradas de la función 'range'. Por ejemplo, si se quiere 200 tópicos, '200,201,1'. Si se quiere 10, 15 y 20, '10,21,5', etc
+
+	# Parámetros LDA por pedazos
+	by_chunks = luigi.BoolParameter(default=False)		# Hacer LDA por pedazos?
+	chunk_size = luigi.IntParameter(default=100)		# Tamaño de los pedazos
+	update_e = luigi.IntParameter(default = 0)			# Cada cuánto actualizar?
+	n_passes = luigi.IntParameter(default=10) 			# Número de pasadas al corpus
 	
+	# Parámetros corpus y diccionario
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	jpg_dir = luigi.Parameter()
@@ -360,7 +370,7 @@ class TrainLDA(luigi.Task):
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	lang_file = luigi.Parameter(default='idiomas.tm')
 	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
 	max_word_length = luigi.IntParameter(default=6)
@@ -446,18 +456,18 @@ class TrainLDA(luigi.Task):
 
 # Classify texts according to trained LDA models
 class PredictLDA(luigi.Task):
-	"""Necesita el modelo LDA"""
-	#variables de predictLDA
-	res_dir = luigi.Parameter()
+	'''Usa un modelo de LDA para clasificar los libros'''
+	# Variables de predictLDA
+	res_dir = luigi.Parameter() # Carpeta para guardar archivos de clasificaciones
 
-	#variables de LDA
-	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
+	# Variables de LDA
+	topic_range = luigi.Parameter(default='30,31,1')
 	by_chunks = luigi.BoolParameter(default=False)
 	chunk_size = luigi.IntParameter(default=100)
 	update_e = luigi.IntParameter(default = 0)
-	n_passes = luigi.IntParameter(default=10) #numero de pasadas al corpus
+	n_passes = luigi.IntParameter(default=10)
 
-	#variables de corpus
+	# Variables de corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	jpg_dir = luigi.Parameter()
@@ -542,6 +552,7 @@ class PredictLDA(luigi.Task):
 			print 'Creando carpeta para resultados...'
 			os.mkdir(self.res_dir)
 
+		# Aplicar cada modelo
 		for idioma, modelos in self.input()['lda']['langs'].iteritems():
 			corp_path = self.input()['corp']['langs'][idioma].path
 			corpus = corpora.MmCorpus(corp_path)
@@ -562,11 +573,12 @@ class PredictLDA(luigi.Task):
 
 # Modelo LSI (TF-IDF + SVD)
 class TrainLSI(luigi.Task):
-	"""Necesita corpus limpio por 
-	idioma sin las stopwords
-	viene del proceso de VECTORIZE"""
-	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
+	'''Entrena modelos LSI para varios números de tópicos'''
+
+	# Parámetros LSI
+	topic_range = luigi.Parameter(default='30,31,1') # Número de topicos. Debe ser una lista de tres números, separados por comas, como las entradas de la función 'range'. Por ejemplo, si se quiere 200 tópicos, '200,201,1'. Si se quiere 10, 15 y 20, '10,21,5', etc
 	
+	# Parámetros de corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	jpg_dir = luigi.Parameter()
@@ -675,11 +687,16 @@ class TrainLSI(luigi.Task):
 # Calcular similitudes de LSI
 from gensim.similarities import Similarity
 class GroupByLSI(luigi.Task):
-	# GroupByLSI
-	res_dir = luigi.Parameter()
-	# TrainLSI
+	''''''
+
+	# Parámetros GroupByLSI
+	res_dir = luigi.Parameter() # Carpeta para guardar archivos de clasificaciones
+	num_similar_docs = luigi.IntParameter(default=5)
+	
+	# Parámetros TrainLSI
 	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
-	#GenerateCorpus
+	
+	# Parámetros corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
 	jpg_dir = luigi.Parameter()
@@ -738,12 +755,13 @@ class GroupByLSI(luigi.Task):
 		else:
 			kind = 'stopwords'
 
+		# Guardamos las similitudes en un archivo con un formato sencillo
 		# NOTA: EL ÍNDICE YA DE POR SÍ GUARDA LAS SIMILITUDES. NO ES NECESARIO CALCULARLAS DE NUEVO
 		for idioma, salida in self.output()['langs'].iteritems():
 			file_list = os.listdir(os.path.join(self.txt_dir,kind,idioma))
 			for n_topics, o in salida.iteritems():
 				index = Similarity.load(self.input()['langs'][idioma][n_topics]['lsi-index'].path)
-				sims = arrange_similarities(index, file_list, num_sims=5)
+				sims = arrange_similarities(index, file_list, num_sims=self.num_similar_docs)
 				sims = '\n'.join(['\t'.join([str(i) for i in t]) for t in sims])
 				with o.open('w') as f:
 					f.write(sims)
