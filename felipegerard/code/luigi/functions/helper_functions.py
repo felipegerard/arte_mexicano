@@ -23,42 +23,8 @@ import shutil
 import unicodedata
 import re
 
-#from GeneradorDiccionario import GeneradorDiccionario
-#from GeneradorCorpus import GeneradorCorpus
-
-# execfile('functions/GeneradorDiccionario.py')
-# execfile('functions/GeneradorCorpus.py')
-# execfile('functions/GeneradorLSI.py')
-
-# Generar diccionario
-
-# def generarDiccionario(carpeta_textos, truncamiento, idioma):
-#     generadorDiccionario = GeneradorDiccionario(carpeta_textos, truncamiento)
-#     #FELIPE# listaArchivos = generadorDiccionario.obtenerLibros()
-#     generadorDiccionario.generarDiccionario()
-#     generadorDiccionario.serializarDiccionario(idioma)
-
-# Generar corpus
-# def generarCorpus(carpeta_textos, carpeta_salida, truncamiento, idioma):
-#     generadorCorpus = GeneradorCorpus(carpeta_textos, carpeta_salida, truncamiento)
-#     generadorCorpus.obtenerLibros()
-#     generadorCorpus.generarCorpus(idioma)
-#     generadorCorpus.serializarCorpus(idioma)
-
 # ----------------------------------------------------------------
 # Funciones y clases adicionales
-
-def save_content(target_dir, book_name, content):
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-        print '--------------------'
-        print 'Creando carpeta ' + target_dir
-
-    # Guardar contenido
-    book_path = os.path.join(target_dir,book_name+'.txt')
-    with open(book_path, 'w') as f:
-        f.write(content)
-    print book_name + ' --> ' + target_dir
 
 # Limpiar texto ### FALTA
 
@@ -69,20 +35,6 @@ def remove_accents(input_str):
     nkfd_form = unicodedata.normalize('NFKD', input_str)
     return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
 
-def clean_text(d):
-        '''d debe ser un string'''
-        d = remove_accents(d)
-        d = re.sub('\n', ' ', d)
-        d = d.lower()
-        d = re.sub('[^a-z0-9 ]', ' ', d)
-        d = re.sub(' +', ' ', d)
-        d = re.sub(' ([^ ]{1,3} )+', ' ', d, )
-        d = re.sub(' [^ ]*(.)\\1{2,}[^ ]* ', ' ', d)
-        return d
-
-def remove_stopwords(clean_text, lang):
-    content = clean_text.split(' ')
-    return ' '.join([w for w in content if w not in stopwords.words(lang)])
 
 # Regresar similitudes
 from gensim.similarities import Similarity

@@ -90,8 +90,17 @@ def guardarMetadatos(book_name,idioma,txt_dir,meta_file):
         with open(meta, 'a+') as f:
             f.write(outfile + '\t'+ idioma + '\n')
 
+def save_content(target_dir, book_name, content):
+	if not os.path.exists(target_dir):
+		os.makedirs(target_dir)
+		print '--------------------'
+		print 'Creando carpeta ' + target_dir
 
-
+	# Guardar contenido
+	book_path = os.path.join(target_dir,book_name+'.txt')
+	with open(book_path, 'w') as f:
+		f.write(content)
+	print book_name + ' --> ' + target_dir
 
 
 

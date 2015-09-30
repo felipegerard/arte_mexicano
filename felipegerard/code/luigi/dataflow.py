@@ -24,6 +24,7 @@ sys.path.append('lechuga')
 
 #from GeneradorDiccionario import GeneradorDiccionario
 from textract import *
+from textclean import clean_text, remove_stopwords
 from dictionaries import generarDiccionario
 from gencorp import generarCorpus
 from GeneradorLSI import GeneradorLSI
@@ -73,10 +74,7 @@ class ReadText(luigi.Task):
 			lista_negra = f.read().split('\n')
 			lista_negra = [i + '.pdf' for i in lista_negra]
 		ruta_pdfs = self.input()['pdf'].path
-		# lista_pdfs = [x for x in os.listdir(ruta_pdfs) if ".pdf" in x]
-		# rutaVolumenes = [os.path.join(ruta_pdfs,i) for i in lista_pdfs if i not in lista_negra]
 		rutaVolumenes = obtener_rutas(ruta_pdfs, extension='.pdf', blacklist=lista_negra)
-
 		contenido = convertirVolumenes(rutaVolumenes)
 		idioma = detectarIdioma(contenido)
 		lang_path = os.path.join(self.txt_dir,idioma)

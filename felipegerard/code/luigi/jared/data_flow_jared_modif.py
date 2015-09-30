@@ -72,7 +72,8 @@ class IdentificarImagenes(luigi.Task):
 				print 'USER INFO: Var = ', pagina.var()
 				print '====================='
 			except:
-				print 'USER WARNING: No se pudo leer la imagen ' + ruta_jpg
+				pass
+				#print 'USER WARNING: No se pudo leer la imagen ' + ruta_jpg
 
 		resultado = '\n'.join(resultado)
 		with self.output().open("w") as f:
