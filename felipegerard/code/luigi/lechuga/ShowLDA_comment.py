@@ -2,7 +2,12 @@
 #DESPUES DE PREDICTLDA
 #ANTES DE TrainLSI
 import luigi
-from dataflow import *
+import sys
+
+#print sys.path.append('/Users/Felipe/data-science/arte-mexicano/felipegerard/code/luigi')
+
+#from dataflow import TrainLDA, PredictLDA
+
 
 class ShowLDA(luigi.Task):
 	"""Necesita PredictLDA y 

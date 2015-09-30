@@ -24,7 +24,7 @@ sys.path.append('lechuga')
 
 #from GeneradorDiccionario import GeneradorDiccionario
 from textract import *
-from textclean import clean_text, remove_stopwords
+from textclean import clean_text, remove_stopwords, remove_accents
 from dictionaries import generarDiccionario
 from gencorp import generarCorpus
 from GeneradorLSI import GeneradorLSI
@@ -32,8 +32,8 @@ from helper_functions import *
 
 from data_flow_jared_modif import *
 
-#from ShowLDA_comment import *
-
+#from ShowLDA_comment import ShowLDA
+execfile('lechuga/ShowLDA_comment.py')
 
 # ----------------------------------------------------------------
 # Data Flow

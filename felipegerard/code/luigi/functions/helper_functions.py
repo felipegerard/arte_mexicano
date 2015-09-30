@@ -29,11 +29,11 @@ import re
 # Limpiar texto ### FALTA
 
 # Quitar caracteres con acentos
-def remove_accents(input_str):
-    if type(input_str) is not unicode:
-        input_str = unicode(input_str, 'utf-8')
-    nkfd_form = unicodedata.normalize('NFKD', input_str)
-    return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
+# def remove_accents(input_str):
+#     if type(input_str) is not unicode:
+#         input_str = unicode(input_str, 'utf-8')
+#     nkfd_form = unicodedata.normalize('NFKD', input_str)
+#     return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
 
 
 # Regresar similitudes
