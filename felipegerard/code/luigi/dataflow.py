@@ -4,6 +4,7 @@
 
 import luigi
 import os
+import sys
 import inspect
 import re
 import pickle
@@ -13,11 +14,10 @@ import unicodedata
 import shutil
 from pprint import pprint
 
+from gensim import corpora
+from gensim.similarities import Similarity
+from gensim.models.ldamodel import LdaModel
 
-# execfile('functions/TopicModeling.py')
-# import time, datetime
-
-import sys
 sys.path.append('functions')
 sys.path.append('jared')
 sys.path.append('lechuga')
@@ -29,7 +29,7 @@ from helper_functions import *
 
 from data_flow_jared_modif import *
 
-from ShowLDA_comment import *
+#from ShowLDA_comment import *
 
 
 # ----------------------------------------------------------------
@@ -358,10 +358,6 @@ class GenerateCorpus(luigi.Task):
 
 
 # Train LDA models
-from gensim import corpora
-from gensim.models.ldamodel import LdaModel
-import pickle
-
 class TrainLDA(luigi.Task):
 	'''Entrena varios modelos LDA que luego serán analizados'''
 	# Parámetros LDA
@@ -696,7 +692,6 @@ class TrainLSI(luigi.Task):
 
 
 # Calcular similitudes de LSI
-from gensim.similarities import Similarity
 class GroupByLSI(luigi.Task):
 	''''''
 
