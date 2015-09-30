@@ -21,6 +21,7 @@ import sys
 import logging
 import shutil
 import unicodedata
+import re
 
 #from GeneradorDiccionario import GeneradorDiccionario
 #from GeneradorCorpus import GeneradorCorpus
@@ -28,76 +29,6 @@ import unicodedata
 # execfile('functions/GeneradorDiccionario.py')
 # execfile('functions/GeneradorCorpus.py')
 # execfile('functions/GeneradorLSI.py')
-
-# Extraccion volumenes
-def obtenerRutaVolumenes(rutaBasePDF):
-    return [os.path.join(rutaBasePDF,x) for x in os.listdir(rutaBasePDF) if ".pdf" in x]
-
-def calcularValoresDeIdioma(contenido):
-    languages_ratios = {}
-    tokens = wordpunct_tokenize(contenido)
-    words = [word.lower() for word in tokens]
-    for language in stopwords.fileids():
-        stopwords_set = set(stopwords.words(language))
-        words_set = set(words)
-        common_elements = words_set.intersection(stopwords_set)
-        languages_ratios[language] = len(common_elements)
-    return languages_ratios
-
-def detectarIdioma(contenido):
-    valores = calcularValoresDeIdioma(contenido)
-    idioma = max(valores, key=valores.get)
-    return idioma
-
-def convertir(rutaVolumen, hojas=None):
-    if not hojas:
-        hojas = set()
-    else:
-        hojas = set(hojas)
-    output = StringIO()
-    manager = PDFResourceManager()
-    converter = TextConverter(manager, output, laparams=LAParams())
-    interpreter = PDFPageInterpreter(manager, converter)
-    infile = file(rutaVolumen, 'rb')
-    for hoja in PDFPage.get_pages(infile, hojas):
-        interpreter.process_page(hoja)
-    infile.close()
-    converter.close()
-    text = output.getvalue()
-    output.close
-    return text
-
-def convertirVolumenes(rutaVolumenes):
-    txt = ""
-    for rutaVolumen in rutaVolumenes:
-        try:
-            txt += convertir(rutaVolumen)
-        except Exception:
-            logging.info("ERROR al convertir el volumen "+rutaVolumen)
-            print "ERROR al convertir el volumen "+rutaVolumen
-    return txt
-
-def extraerVolumen(inputPDF):
-    print "---------------------------------"
-    print "Convirtiendo "+inputPDF.path
-    rutaVolumenes = obtenerRutaVolumenes(inputPDF.path)
-    contenido = convertirVolumenes(rutaVolumenes)
-    idioma = detectarIdioma(contenido)
-    return idioma, contenido
-
-# Guardar metadatos
-def guardarMetadatos(book_name,idioma,txt_dir,meta_file):
-    outfile = book_name
-    meta = os.path.join(txt_dir, meta_file)
-    flag = True
-    if os.path.exists(meta):
-        with open(meta, 'r') as f:
-            log = f.read()
-            if outfile in log:
-                flag = False
-    if flag:
-        with open(meta, 'a+') as f:
-            f.write(outfile + '\t'+ idioma + '\n')
 
 # Generar diccionario
 
@@ -108,11 +39,11 @@ def guardarMetadatos(book_name,idioma,txt_dir,meta_file):
 #     generadorDiccionario.serializarDiccionario(idioma)
 
 # Generar corpus
-def generarCorpus(carpeta_textos, carpeta_salida, truncamiento, idioma):
-    generadorCorpus = GeneradorCorpus(carpeta_textos, carpeta_salida, truncamiento)
-    generadorCorpus.obtenerLibros()
-    generadorCorpus.generarCorpus(idioma)
-    generadorCorpus.serializarCorpus(idioma)
+# def generarCorpus(carpeta_textos, carpeta_salida, truncamiento, idioma):
+#     generadorCorpus = GeneradorCorpus(carpeta_textos, carpeta_salida, truncamiento)
+#     generadorCorpus.obtenerLibros()
+#     generadorCorpus.generarCorpus(idioma)
+#     generadorCorpus.serializarCorpus(idioma)
 
 # ----------------------------------------------------------------
 # Funciones y clases adicionales
@@ -138,7 +69,6 @@ def remove_accents(input_str):
     nkfd_form = unicodedata.normalize('NFKD', input_str)
     return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
 
-import re
 def clean_text(d):
         '''d debe ser un string'''
         d = remove_accents(d)

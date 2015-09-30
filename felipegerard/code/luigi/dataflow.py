@@ -23,8 +23,9 @@ sys.path.append('jared')
 sys.path.append('lechuga')
 
 #from GeneradorDiccionario import GeneradorDiccionario
+from textract import *
 from dictionaries import generarDiccionario
-from GeneradorCorpus import GeneradorCorpus
+from gencorp import generarCorpus
 from GeneradorLSI import GeneradorLSI
 from helper_functions import *
 
@@ -71,13 +72,11 @@ class ReadText(luigi.Task):
 		with self.input()['images'].open('r') as f:
 			lista_negra = f.read().split('\n')
 			lista_negra = [i + '.pdf' for i in lista_negra]
-		#rutaVolumenes = obtenerRutaVolumenes(inputPDF.path)
 		ruta_pdfs = self.input()['pdf'].path
-		lista_pdfs = [x for x in os.listdir(ruta_pdfs) if ".pdf" in x]
-		rutaVolumenes = [os.path.join(ruta_pdfs,i) for i in lista_pdfs if i not in lista_negra]
-		pprint(lista_negra)
-		pprint(lista_pdfs)
-		pprint(rutaVolumenes)
+		# lista_pdfs = [x for x in os.listdir(ruta_pdfs) if ".pdf" in x]
+		# rutaVolumenes = [os.path.join(ruta_pdfs,i) for i in lista_pdfs if i not in lista_negra]
+		rutaVolumenes = obtener_rutas(ruta_pdfs, extension='.pdf', blacklist=lista_negra)
+
 		contenido = convertirVolumenes(rutaVolumenes)
 		idioma = detectarIdioma(contenido)
 		lang_path = os.path.join(self.txt_dir,idioma)
@@ -350,12 +349,10 @@ class GenerateCorpus(luigi.Task):
 			rutaTextos = os.path.join(self.txt_dir,kind,idioma)
 			
 			# Generar el corpus
-			nombre_corpus = self.output()['langs'][idioma].path
+			ruta_corpus = self.output()['langs'][idioma].path
 			ruta_diccionario = self.input()['langs'][idioma].path
-			generadorCorpus = GeneradorCorpus(rutaTextos, ruta_diccionario, self.max_word_length)
-			generadorCorpus.obtenerLibros()
-			generadorCorpus.generarCorpus()
-			generadorCorpus.serializarCorpus(nombre_corpus)
+			corpus = generarCorpus(ruta_diccionario, rutaTextos, truncamiento=self.max_word_length)
+			corpora.MmCorpus.serialize(ruta_corpus, corpus)
 
 
 # Train LDA models
