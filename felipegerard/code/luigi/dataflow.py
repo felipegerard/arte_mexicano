@@ -22,7 +22,8 @@ sys.path.append('functions')
 sys.path.append('jared')
 sys.path.append('lechuga')
 
-from GeneradorDiccionario import GeneradorDiccionario
+#from GeneradorDiccionario import GeneradorDiccionario
+from dictionaries import generarDiccionario
 from GeneradorCorpus import GeneradorCorpus
 from GeneradorLSI import GeneradorLSI
 from helper_functions import *
@@ -286,9 +287,9 @@ class GenerateDictionary(luigi.Task):
 
 			# Generar el diccionario
 			nombre_diccionario = self.output()['langs'][idioma].path
-			generadorDiccionario = GeneradorDiccionario(rutaTextos, truncamiento=self.max_word_length)
-			generadorDiccionario.generarDiccionario()
-			generadorDiccionario.serializarDiccionario(nombre_diccionario)
+			print rutaTextos
+			diccionario = generarDiccionario(rutaTextos, min_doc_freq=0, truncamiento=self.max_word_length)
+			diccionario.save(nombre_diccionario)
 			
 
 

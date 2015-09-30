@@ -101,11 +101,11 @@ def guardarMetadatos(book_name,idioma,txt_dir,meta_file):
 
 # Generar diccionario
 
-def generarDiccionario(carpeta_textos, truncamiento, idioma):
-    generadorDiccionario = GeneradorDiccionario(carpeta_textos, truncamiento)
-    #FELIPE# listaArchivos = generadorDiccionario.obtenerLibros()
-    generadorDiccionario.generarDiccionario()
-    generadorDiccionario.serializarDiccionario(idioma)
+# def generarDiccionario(carpeta_textos, truncamiento, idioma):
+#     generadorDiccionario = GeneradorDiccionario(carpeta_textos, truncamiento)
+#     #FELIPE# listaArchivos = generadorDiccionario.obtenerLibros()
+#     generadorDiccionario.generarDiccionario()
+#     generadorDiccionario.serializarDiccionario(idioma)
 
 # Generar corpus
 def generarCorpus(carpeta_textos, carpeta_salida, truncamiento, idioma):
