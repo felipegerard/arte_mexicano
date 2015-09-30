@@ -9,13 +9,16 @@ import csv
 from collections import defaultdict
 from pprint import pprint
 
-def rgb2gray(rgb):
-	"""
-	Convertir imagenes en escala de grises
-	"""
-	r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
-	gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-	return gray
+from skimage.filters import gaussian_filter
+from skimage.color import rgb2gray
+
+# def rgb2gray(rgb):
+# 	"""
+# 	Convertir imagenes en escala de grises
+# 	"""
+# 	r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
+# 	gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+# 	return gray
 
 class CarpetaLibro(luigi.ExternalTask):
 	"""
@@ -42,6 +45,7 @@ class IdentificarImagenes(luigi.Task):
 	book_name = luigi.Parameter()
 	jpg_dir = luigi.Parameter() # Carpeta de jpgs (jpg/libro/pagina.jpg)
 	output_dir = luigi.Parameter() # Archivo de salida con info de imagenes
+	varianza = luigi.FloatParameter(default=0.05)
 
 	def requires(self):
 		return CarpetaLibro(os.path.join(self.jpg_dir, self.book_name))
@@ -62,10 +66,11 @@ class IdentificarImagenes(luigi.Task):
 			try:
 				pagina = misc.imread(ruta_jpg)
 				pagina = rgb2gray(pagina)
+				pagina = gaussian_filter(pagina,sigma=2) #Un filtro que me de un promedio de la imagen
+				if pagina.var() > self.varianza:
+					resultado.append(jpg.replace('.jpg',''))
 				print 'USER INFO: Var = ', pagina.var()
 				print '====================='
-				if pagina.var()>1000:#5000:
-					resultado.append(jpg.replace('.jpg',''))
 			except:
 				print 'USER WARNING: No se pudo leer la imagen ' + ruta_jpg
 

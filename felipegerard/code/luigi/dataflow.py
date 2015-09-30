@@ -17,8 +17,19 @@ from pprint import pprint
 # execfile('functions/TopicModeling.py')
 # import time, datetime
 
-execfile('functions/helper_functions.py')
-execfile('jared/data_flow_jared_modif.py')
+import sys
+sys.path.append('functions')
+sys.path.append('jared')
+sys.path.append('lechuga')
+
+from GeneradorDiccionario import GeneradorDiccionario
+from GeneradorCorpus import GeneradorCorpus
+from GeneradorLSI import GeneradorLSI
+from helper_functions import *
+
+from data_flow_jared_modif import *
+
+from ShowLDA_comment import *
 
 
 # ----------------------------------------------------------------

@@ -20,13 +20,14 @@ import io
 import sys
 import logging
 import shutil
+import unicodedata
 
 #from GeneradorDiccionario import GeneradorDiccionario
 #from GeneradorCorpus import GeneradorCorpus
 
-execfile('functions/GeneradorDiccionario.py')
-execfile('functions/GeneradorCorpus.py')
-execfile('functions/GeneradorLSI.py')
+# execfile('functions/GeneradorDiccionario.py')
+# execfile('functions/GeneradorCorpus.py')
+# execfile('functions/GeneradorLSI.py')
 
 # Extraccion volumenes
 def obtenerRutaVolumenes(rutaBasePDF):
