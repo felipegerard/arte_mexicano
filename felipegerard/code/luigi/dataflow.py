@@ -286,6 +286,7 @@ class GenerateDictionary(luigi.Task):
 			nombre_diccionario = self.output()['langs'][idioma].path
 			print rutaTextos
 			diccionario = generarDiccionario(rutaTextos, min_doc_freq=0, truncamiento=self.max_word_length)
+			pprint(diccionario.token2id)
 			diccionario.save(nombre_diccionario)
 			
 
@@ -452,7 +453,7 @@ class TrainLDA(luigi.Task):
 				print 'Número de tópicos: ' + str(n_topics)
 				if self.by_chunks:
 					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, update_every=self.update_e, chunksize=self.chunk_size, passes=self.n_passes)
-				else:  
+				else:
 					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, passes=1)
 				lda.save(self.output()['langs'][idioma][n_topics].path)
 

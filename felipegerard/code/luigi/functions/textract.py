@@ -5,7 +5,6 @@ import io
 import sys
 import logging
 import shutil
-import unicodedata
 
 try:
     from cStringIO import StringIO

@@ -2,3 +2,4 @@ text
 test
 test_old
 *.log
+*.pyc

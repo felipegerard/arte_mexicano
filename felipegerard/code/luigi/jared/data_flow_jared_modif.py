@@ -64,16 +64,16 @@ class IdentificarImagenes(luigi.Task):
 			print '====================='
 			print 'USER INFO: ' + ruta_jpg
 			try:
-				pagina = misc.imread(ruta_jpg)
-				pagina = rgb2gray(pagina)
-				pagina = gaussian_filter(pagina,sigma=2) #Un filtro que me de un promedio de la imagen
-				if pagina.var() > self.varianza:
-					resultado.append(jpg.replace('.jpg',''))
-				print 'USER INFO: Var = ', pagina.var()
-				print '====================='
+				# pagina = misc.imread(ruta_jpg)
+				# pagina = rgb2gray(pagina)
+				# pagina = gaussian_filter(pagina,sigma=2) #Un filtro que me de un promedio de la imagen
+				# if pagina.var() > self.varianza:
+				# 	resultado.append(jpg.replace('.jpg',''))
+				# print 'USER INFO: Var = ', pagina.var()
+				# print '====================='
+				resultado.append('basura')
 			except:
-				pass
-				#print 'USER WARNING: No se pudo leer la imagen ' + ruta_jpg
+				print 'USER WARNING: No se pudo leer la imagen ' + ruta_jpg
 
 		resultado = '\n'.join(resultado)
 		with self.output().open("w") as f:
