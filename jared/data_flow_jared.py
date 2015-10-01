@@ -1,5 +1,6 @@
 import luigi
 import os
+import numpy as np
 import pickle
 from scipy import misc
 from joblib import Parallel, delayed  
@@ -17,9 +18,11 @@ from sklearn.cluster import KMeans
 from itertools import chain
 
 def image_vec(pagina):
-    pagina = io.imread(pagina)
-    pagina_2 = rgb2gray(pagina)
-    return pagina_2.reshape(1,60000)
+	pagina = io.imread(pagina)
+	#pagina_2 = rgb2gray(pagina)
+	pagina_2 = pagina[:,:,1]
+	return pagina_2.reshape(1,60000)
+	#return pagina.reshape(1,300*200*3)
 
 class CarpetaLibro(luigi.ExternalTask):
 	"""
@@ -174,8 +177,9 @@ class SacarClusters(luigi.Task):
 		#mat_pin = csr_matrix(mat_pin)
 
 		print "Sacando SVD"
-		svd = TruncatedSVD(n_components=self.components, random_state=42)
-
+		svd = TruncatedSVD(n_components=self.components)
+		
+		print "Transormando matriz"
 		X = svd.fit_transform(mat_pin)
 
 		print(svd.explained_variance_ratio_)
@@ -212,6 +216,62 @@ class SacarClusters(luigi.Task):
 		with open(self.output_dir + "/componentes.csv", "wb") as f:
 			writer = csv.writer(f)
 			writer.writerows(X)
+
+
+class MatrizColores(luigi.Task):
+	"""
+	Creamos la matriz que va a tener el conteo, logaritmo del conteo,
+	de los colores de los pixeles de la pintura.
+	"""
+	input_dir = luigi.Parameter()
+	output_dir = luigi.Parameter(default = 'Salidas')
+	varianza = luigi.FloatParameter(default=0.05)
+	output_dir_imag = luigi.Parameter(default = 'Imagenes')
+	carpeta_analizar = luigi.Parameter(default = 'Salidas/Imagenes/')
+	
+	def requires(self):
+		"""
+		Va a depender del proceso de CopiarImagenReducir, porque lo vamos a 
+		realizar sobre todas las imagenes, sin embargo, se puede hacer tambien
+		sobre las imagenes clusterizadas
+		"""
+		return [CopiarImagenReducir(self.input_dir, x ,self.output_dir,
+			self.varianza,self.output_dir_imag) for x in os.listdir(self.input_dir)]
+
+	def output(self):
+		"""
+		El output es un csv y un rds de la matriz
+		"""
+		return [luigi.LocalTarget("matriz_colores.csv"), luigi.LocalTarget("matriz_colores.rds")]
+
+	def run(self):
+		carpeta = self.carpeta_analizar #Recordar ponerlo con diagonal al final: Imagenes/
+		subprocess.call('Rscript imagen_vector.r ' + carpeta , shell = True)
+
+class LocalSensitiveHashing(luigi.Task):
+	"""
+	Una vez que tengamos la matriz de colores podemos proceder
+	a hacer Local Sensitive Hashing.
+	"""
+	input_dir = luigi.Parameter()
+	output_dir = luigi.Parameter(default = 'Salidas')
+	varianza = luigi.FloatParameter(default=0.05)
+	output_dir_imag = luigi.Parameter(default = 'Imagenes')
+	carpeta_analizar = luigi.Parameter(default = 'Salidas/Imagenes/')
+	
+	def requires(self):
+		return MatrizColores(self.carpeta_analizar)
+
+	def output(self):
+		"""
+		El output es un csv y un rds de los pares mas 
+		parecidos y su grado de similitud coseno
+		"""
+		return [luigi.LocalTarget("similitudes_paginas.rds"), luigi.LocalTarget("similitudes_paginas.csv")]
+
+	def run(self):
+		subprocess.call('Rscript proceso_LSH.r', shell = True)		
+		
 
 if __name__ == '__main__':
 	luigi.run()
