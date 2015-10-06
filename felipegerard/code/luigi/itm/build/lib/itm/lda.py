@@ -10,7 +10,6 @@ import unicodedata
 
 from gensim import corpora
 from gensim.models.ldamodel import LdaModel
-from gensim.similarities import Similarity
 
 from dict_corp import GenerateDictionary, GenerateCorpus
 

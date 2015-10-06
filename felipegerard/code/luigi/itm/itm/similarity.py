@@ -8,11 +8,10 @@ import re
 import pickle
 
 from gensim import corpora
-from gensim.models.ldamodel import LdaModel
 from gensim.similarities import Similarity
 
 from GeneradorLSI import GeneradorLSI
-from similarities import arrange_similarities
+from similarity_functions import arrange_similarities
 from dict_corp import GenerateDictionary, GenerateCorpus
 
 # Modelo LSI (TF-IDF + SVD)

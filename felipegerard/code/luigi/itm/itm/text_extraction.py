@@ -8,8 +8,8 @@ import pickle
 import unicodedata
 import shutil
 
-from textract import *
-from textclean import clean_text, remove_stopwords, remove_accents
+from text_extraction_functions import *
+from text_clean_functions import clean_text, remove_stopwords, remove_accents
 
 # Input PDF directory
 class InputPDF(luigi.ExternalTask):

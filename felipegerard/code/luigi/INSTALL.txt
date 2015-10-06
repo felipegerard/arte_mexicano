@@ -1,3 +1,6 @@
+
+## OJO SOLO INSTALAR LO QUE HAGA FALTA
+
 sudo apt-get update
 sudo apt-get install python2.7-dev
 sudo apt-get install python-pip
@@ -12,7 +15,13 @@ sudo apt-get install python-numpy python-scipy libblas-dev liblapack-dev gfortra
 sudo pip install numpy --upgrade
 sudo pip install scipy --upgrade
 
-# nltk
+## Para instalar las palabras de nltk
 $ python
 >>> import nltk
 >>> nltk.download('stopwords')
+
+## PARA INSTALAR EL PAQUETE
+
+$ tar xzvf itm-0.1.tar.gz
+$ cd itm-0.1
+$ python setup.py install

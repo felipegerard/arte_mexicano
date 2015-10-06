@@ -9,9 +9,9 @@ import pickle
 import unicodedata
 
 from gensim import corpora
-from dictionaries import generarDiccionario
-from gencorp import generarCorpus
-from text_basic import DetectLanguages
+from dictionary_functions import generarDiccionario
+from corpus_functions import generarCorpus
+from text_extraction import DetectLanguages
 
 # Generate dictionary for each language and cleanliness level
 class GenerateDictionary(luigi.Task):
