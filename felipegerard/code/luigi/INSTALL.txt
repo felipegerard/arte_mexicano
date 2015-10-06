@@ -1,3 +1,18 @@
 sudo apt-get update
-sudo apt-get install python
+sudo apt-get install python2.7-dev
 sudo apt-get install python-pip
+
+## Para instalar numpy
+#sudo apt-get install gfortran
+#sudo apt-get install git
+#sudo apt-get upgrade gcc
+#pip install git+https://bitbucket.org/pypy/numpy.git
+
+sudo apt-get install python-numpy python-scipy libblas-dev liblapack-dev gfortran python2.7-dev
+sudo pip install numpy --upgrade
+sudo pip install scipy --upgrade
+
+# nltk
+$ python
+>>> import nltk
+>>> nltk.download('stopwords')

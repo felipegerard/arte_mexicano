@@ -4,10 +4,10 @@ import luigi
 import argparse
 from itm import *
 
-parser = argparse.ArgumentParser(description='''Wrapper de luigi para correr la minería de texto conjunta del ITAM + GIL.
-Es equivalente a correr python dataflow.py [Proceso] [args]''')
+#parser = argparse.ArgumentParser(description='''Wrapper de luigi para correr la minería de texto conjunta del ITAM + GIL.
+#Es equivalente a correr python dataflow.py [Proceso] [args]''')
 
-args = parser.parse_args()
+#args = parser.parse_args()
 
 if __name__ == '__main__':
     luigi.run()
