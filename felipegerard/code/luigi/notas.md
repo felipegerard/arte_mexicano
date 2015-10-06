@@ -19,12 +19,11 @@ $ pip install pdfminer
     * ...
 
 ## To do
+++ Por qué no funciona TrainLDA cuando workers > 1?
 ++ Usar una sola carpeta y filtrar con metadatos??
 + Quitar los parámetros sobrantes (meta...)
-+ Filtrar páginas con imágenes
 + Guardar txts crudos? Por página?
 + LSA (requiere stopwords?)
-+ Similitudes
 + XMLs DSpace
 
 ## Trabajo futuro
