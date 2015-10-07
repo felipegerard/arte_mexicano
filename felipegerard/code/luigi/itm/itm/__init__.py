@@ -2,5 +2,6 @@
 
 from text_basic import InputPDF, ReadText, CleanText, DetectLanguages
 from dict_corp import GenerateDictionary, GenerateCorpus
-from lda import TrainLDA, PredictLDA, ShowLDA
+from lda import TrainLDA, PredictLDA#, ShowLDA
+from ShowLDA import ShowLDA
 from similarity import TrainLSI, GroupByLSI
