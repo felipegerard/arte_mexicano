@@ -132,7 +132,7 @@ class ShowLDA(luigi.Task):
 					topics = pickle.load(r) 
 				high_topics = [max(x, key=lambda y: y[1]) for x in topic_results]
 				res = [(n,i,s,topics[i]) for n,(i,s) in enumerate(high_topics)]
-				d = os.listdir(os.path.join(self.txt_dir,'stopwords',idioma)) #,self.book_name+'.txt')) <<-- Esto sobraba
+				d = os.listdir(os.path.join(self.txt_dir,kind,idioma)) #,self.book_name+'.txt')) <<-- Esto sobraba
 				res_d = {(num_topico, topico):[(num_libro, d[num_libro], score)]
 					for num_libro, num_topico, score, topico in res}
 				pprint(res_d)

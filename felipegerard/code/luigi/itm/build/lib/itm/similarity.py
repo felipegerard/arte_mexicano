@@ -7,11 +7,13 @@ import inspect
 import re
 import pickle
 
+import json
+
 from gensim import corpora
 from gensim.similarities import Similarity
 
 from GeneradorLSI import GeneradorLSI
-from similarity_functions import arrange_similarities
+from similarity_functions import index2dict
 from dict_corp import GenerateDictionary, GenerateCorpus
 
 # Modelo LSI (TF-IDF + SVD)
@@ -81,9 +83,9 @@ class TrainLSI(luigi.Task):
 						{
 							n_topics:
 							{
-								'tfidf':luigi.LocalTarget(self.model_dir + '/' + 'model-%s-%s-%d.tfidf' % (kind, idioma, n_topics)),
-								'lsi-model':luigi.LocalTarget(self.model_dir + '/' + 'model-%s-%s-%d.lsi' % (kind, idioma, n_topics)),
-								'lsi-index':luigi.LocalTarget(self.model_dir + '/' + 'model-%s-%s-%d.lsi.index' % (kind, idioma, n_topics))
+								'tfidf':luigi.LocalTarget(os.path.join(self.model_dir,'model-%s-%s-%d.tfidf' % (kind, idioma, n_topics))),
+								'lsi-model':luigi.LocalTarget(os.path.join(self.model_dir, 'model-%s-%s-%d.lsi' % (kind, idioma, n_topics))),
+								'lsi-index':luigi.LocalTarget(os.path.join(self.model_dir, 'model-%s-%s-%d.lsi.index' % (kind, idioma, n_topics)))
 							}
 							for n_topics in topic_range
 						}
@@ -183,7 +185,7 @@ class GroupByLSI(luigi.Task):
 					{
 						idioma:
 						{
-							n_topics:luigi.LocalTarget(self.res_dir + '/' + 'lsi-results-%s-%s-%d.tsv' % (kind, idioma, n_topics))
+							n_topics:luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.json' % (kind, idioma, n_topics)))
 							for n_topics in topic_range
 						}
 						for idioma in self.input()['langs'].iterkeys()
@@ -203,7 +205,19 @@ class GroupByLSI(luigi.Task):
 			file_list = os.listdir(os.path.join(self.txt_dir,kind,idioma))
 			for n_topics, o in salida.iteritems():
 				index = Similarity.load(self.input()['langs'][idioma][n_topics]['lsi-index'].path)
-				sims = arrange_similarities(index, file_list, num_sims=self.num_similar_docs)
-				sims = '\n'.join(['\t'.join([str(i) for i in t]) for t in sims])
+				#sims = arrange_similarities(index, file_list, num_sims=self.num_similar_docs)
+				#sims = '\n'.join(['\t'.join([str(i) for i in t]) for t in sims])
+				sims = index2dict(index, file_list, num_sims=self.num_similar_docs)
 				with o.open('w') as f:
-					f.write(sims)
+					#f.write(sims)
+					json.dump(sims, f)
+
+
+
+
+
+
+
+
+
+
