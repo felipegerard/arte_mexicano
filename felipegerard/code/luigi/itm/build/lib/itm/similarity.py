@@ -8,6 +8,7 @@ import re
 import pickle
 
 import json
+from markdown import markdown
 
 from gensim import corpora
 from gensim.similarities import Similarity
@@ -130,7 +131,7 @@ class TrainLSI(luigi.Task):
 
 
 # Calcular similitudes de LSI
-class GroupByLSI(luigi.Task):
+class ShowLSI(luigi.Task):
 	''''''
 
 	# Parámetros GroupByLSI
@@ -185,7 +186,10 @@ class GroupByLSI(luigi.Task):
 					{
 						idioma:
 						{
-							n_topics:luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.json' % (kind, idioma, n_topics)))
+							n_topics:{
+								'json':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.json' % (kind, idioma, n_topics))),
+								'html':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.html' % (kind, idioma, n_topics)))
+							}
 							for n_topics in topic_range
 						}
 						for idioma in self.input()['langs'].iterkeys()
@@ -205,9 +209,15 @@ class GroupByLSI(luigi.Task):
 			file_list = os.listdir(os.path.join(self.txt_dir,kind,idioma))
 			for n_topics, o in salida.iteritems():
 				index = Similarity.load(self.input()['langs'][idioma][n_topics]['lsi-index'].path)
+
+				# JSON
 				sims = index2dict(index, file_list, num_sims=self.num_similar_docs)
-				with o.open('w') as f:
+				with o['json'].open('w') as f:
 					json.dump(sims, f)
+
+				# HTML
+				with o['html'].open('w') as f:
+					f.write('Prueba')
 
 
 

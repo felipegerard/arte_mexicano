@@ -14,6 +14,7 @@ setup(name='itm',
 		'pdfminer>=20140328',
 		'gensim>=0.12.1',
 		'scipy>=0.7.0',
-		'nltk>=3.0.5'
+		'nltk>=3.0.5',
+		'markdown>=2.6.2'
 		],
 	zip_safe=False)

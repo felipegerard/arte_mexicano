@@ -8,6 +8,7 @@ nltk.download('stopwords')
 
 ## 
 $ pip install pdfminer
+$ pip install markdown
 
 ## Estructura de archivos de entrada
 + ruta_fuente_pdfs (podría ser ruta_general/pdf, aunque no tiene que ser)

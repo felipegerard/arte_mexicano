@@ -6,7 +6,10 @@ import sys
 import inspect
 import re
 import pickle
+import json
 import unicodedata
+
+import markdown
 
 from gensim import corpora
 from gensim.models.ldamodel import LdaModel
@@ -235,4 +238,154 @@ class PredictLDA(luigi.Task):
 				with self.output()['langs'][idioma][n_topics]['topics'].open('w') as f:
 					pickle.dump(model.print_topics(n_topics,5), f) # el 5 es un parámetro que se puede editar (numero de palabras del tópico a mostrar)	
 
+
 # Generar salidas de LDA para que lo cheque una persona
+class ShowLDA(luigi.Task):
+	"""Necesita PredictLDA y 
+	TrainLDA """
+	#variables de ShowLDA
+	res_dir = luigi.Parameter()
+
+	#variables de LDA
+	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
+	by_chunks = luigi.BoolParameter(default=False)
+	chunk_size = luigi.IntParameter(default=100)
+	update_e = luigi.IntParameter(default = 0)
+	n_passes = luigi.IntParameter(default=10) #numero de pasadas al corpus
+
+	#variables de corpus
+	pdf_dir = luigi.Parameter()
+	txt_dir = luigi.Parameter()
+	#jpg_dir = luigi.Parameter()
+	#image_meta_dir = luigi.Parameter()
+	model_dir = luigi.Parameter()
+	meta_dir = luigi.Parameter(default='meta')
+	meta_file = luigi.Parameter(default='librosAgregados.tm')
+	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	clean_level = luigi.Parameter(default='stopwords')
+	languages = luigi.Parameter()
+	max_word_length = luigi.IntParameter(default=6)
+	min_docs_per_lang = luigi.IntParameter(default=1)
+
+
+	def requires(self):
+		return PredictLDA(res_dir=self.res_dir,
+							topic_range=self.topic_range,
+							by_chunks=self.by_chunks,
+							chunk_size=self.chunk_size,
+							update_e=self.update_e,
+							n_passes=self.n_passes, 
+							pdf_dir=self.pdf_dir,
+							txt_dir=self.txt_dir,
+							#jpg_dir = self.jpg_dir,
+							#image_meta_dir = self.image_meta_dir,
+							model_dir=self.model_dir,
+							meta_dir=self.meta_dir,
+							meta_file=self.meta_file,
+							lang_file=self.lang_file,
+							clean_level=self.clean_level,
+							languages=self.languages,
+							max_word_length=self.max_word_length,
+							min_docs_per_lang=self.min_docs_per_lang)
+
+
+################################CHECAR OUTPUT#################
+	def output(self):
+		topic_range = self.topic_range.split(',')
+		topic_range = [int(i) for i in topic_range]
+		topic_range = range(topic_range[0],topic_range[1],topic_range[2])
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+		
+		return {
+					'langs':
+					{
+						idioma:
+						{
+							n_topics:{
+								'json':luigi.LocalTarget(os.path.join(self.res_dir, 'lda_results_%s_%s_%d.json' % (kind, idioma, n_topics))),
+								'html':luigi.LocalTarget(os.path.join(self.res_dir, 'lda_results_%s_%s_%d.html' % (kind, idioma, n_topics)))
+							}
+							for n_topics in topic_range
+						}
+						for idioma in self.input()['langs'].iterkeys()
+					},
+					'files':self.input()['files']
+				}
+
+
+	def run(self):
+		if self.clean_level in ('raw','clean','stopwords'):
+			kind = self.clean_level
+		else:
+			kind = 'stopwords'
+
+		if not os.path.exists(self.res_dir):
+			print 'Creando carpeta para resultados...'
+			os.mkdir(self.res_dir)
+
+		for idioma, modelos in self.input()['langs'].iteritems():
+			for n_topics, target in modelos.iteritems():
+				# Leemos resultados de LDA
+				with target["doc_topics"].open('r') as f:
+					topic_results = pickle.load(f)
+				with target["topics"].open('r') as r:
+					topics = pickle.load(r)
+				# Generamos diccionario con resultados
+				high_topics = [max(x, key=lambda y: y[1]) for x in topic_results]
+				files = [i.replace('.txt', '') for i in os.listdir(os.path.join(self.txt_dir,kind,idioma))]
+				res = {
+					i:{
+						'formula':topic,
+						'tags':re.sub(' \+ [\.0-9]+\*', ', ', re.sub('[\.0-9]+\*', '', topic, count=1)),
+						'documents':[]
+					}
+					for i, topic in enumerate(topics)
+				}
+				for num_doc,(num_topic, s) in enumerate(high_topics):
+					res[num_topic]['documents'].append({
+							'name':files[num_doc],
+							'topic_similarity':s
+						})
+				# Guardamos JSON
+				with self.output()['langs'][idioma][n_topics]['json'].open('w') as f:
+					json.dump(res, f)
+
+				# Generamos HTML
+				s = u''
+				for num_topic, v in res.iteritems():
+					if len(v['documents']) > 0:
+						s += u'-------------------------------------------\n'
+						s += u'### %d. %s\n\n' % (num_topic, v['tags'])
+						#s += u'__Formula: %s__\n\n' % (v['formula'])
+						#s = s.replace('*', 'x')
+						s += u'| Libro | Probabilidad de pertenencia |\n|:-------|-------------------------:|\n'''
+						for i, d in enumerate(v['documents']):
+							print (d['name'], d['topic_similarity'])
+							s += u'| %s | %f |\n' % (d['name'], round(d['topic_similarity'],3))
+						s += u'\n\n'
+
+				md = markdown.markdown(s, extensions=['markdown.extensions.tables'])
+
+				with self.output()['langs'][idioma][n_topics]['html'].open('w') as f:
+					f.write(md)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

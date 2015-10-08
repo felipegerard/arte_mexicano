@@ -96,7 +96,7 @@ class ShowLDA(luigi.Task):
 						{
 							n_topics:
 							
-								 luigi.LocalTarget(os.path.join(self.res_dir, 'document_results_%s_%s_%d.json' % (kind, idioma, n_topics)))
+								 luigi.LocalTarget(os.path.join(self.res_dir, 'lda_results_%s_%s_%d.json' % (kind, idioma, n_topics)))
 							
 							for n_topics in topic_range
 						}
@@ -151,6 +151,4 @@ class ShowLDA(luigi.Task):
 				with self.output()['langs'][idioma][n_topics].open('w') as f:
 					json.dump(res, f)
 											
-#ANTES DE TrainLSI
-											
-#ANTES DE TrainLSI
+
