@@ -205,11 +205,8 @@ class GroupByLSI(luigi.Task):
 			file_list = os.listdir(os.path.join(self.txt_dir,kind,idioma))
 			for n_topics, o in salida.iteritems():
 				index = Similarity.load(self.input()['langs'][idioma][n_topics]['lsi-index'].path)
-				#sims = arrange_similarities(index, file_list, num_sims=self.num_similar_docs)
-				#sims = '\n'.join(['\t'.join([str(i) for i in t]) for t in sims])
 				sims = index2dict(index, file_list, num_sims=self.num_similar_docs)
 				with o.open('w') as f:
-					#f.write(sims)
 					json.dump(sims, f)
 
 

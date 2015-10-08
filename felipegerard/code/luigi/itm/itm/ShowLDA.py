@@ -3,8 +3,9 @@
 #ANTES DE TrainLSI
 import luigi
 import os
+import re
 import pickle
-import pandas as pd
+import json
 from pprint import pprint
 
 from lda import TrainLDA, PredictLDA
@@ -95,7 +96,7 @@ class ShowLDA(luigi.Task):
 						{
 							n_topics:
 							
-								 luigi.LocalTarget(os.path.join(self.res_dir, 'document_results_%s_%s_%d.csv' % (kind, idioma, n_topics)))
+								 luigi.LocalTarget(os.path.join(self.res_dir, 'lda_results_%s_%s_%d.json' % (kind, idioma, n_topics)))
 							
 							for n_topics in topic_range
 						}
@@ -124,41 +125,30 @@ class ShowLDA(luigi.Task):
 			for n_topics, target in modelos.iteritems(): # <<-- No habias definido modelos, pero ahora ya esta y adentro de modelos esta ntopics y target
 				print idioma
 				# print modelos.keys()
-				corp_path1 = self.input()['corp_LDA']['langs'][idioma][n_topics]["doc_topics"].path # <<-- Por eso esto no funciona
-				corp_path2 = self.input()['corp_LDA']['langs'][idioma][n_topics]["topics"].path # <<-- Ni esto
-				with open(corp_path1, 'r') as f:
+				#corp_path1 = self.input()['corp_LDA']['langs'][idioma][n_topics]["doc_topics"].path
+				#corp_path2 = self.input()['corp_LDA']['langs'][idioma][n_topics]["topics"].path
+				with self.input()['corp_LDA']['langs'][idioma][n_topics]["doc_topics"].open('r') as f:
 					topic_results = pickle.load(f)
-				with open(corp_path2, 'r') as r:
+				with self.input()['corp_LDA']['langs'][idioma][n_topics]["topics"].open('r') as r:
 					topics = pickle.load(r) 
 				high_topics = [max(x, key=lambda y: y[1]) for x in topic_results]
-				res = [(n,i,s,topics[i]) for n,(i,s) in enumerate(high_topics)]
-				d = os.listdir(os.path.join(self.txt_dir,kind,idioma)) #,self.book_name+'.txt')) <<-- Esto sobraba
-				res_d = {(num_topico, topico):[(num_libro, d[num_libro], score)]
-					for num_libro, num_topico, score, topico in res}
-				pprint(res_d)
-				rslt = []
-				alter = [rslt.append((num_topico, topico, num_libro, d[num_libro], score)) for num_libro, num_topico, score, topico in res]
-				tabla_final = pd.DataFrame(rslt, columns=['no_topico', 'topico', 'no_archivo', 'nombre_archivo', 'score'])
-				#print 'IMPRIMIENDO Y GUARDANDO LOS RESULTADOS DE LDA DE TEXTOS EN %s CON "%s" Y %d TÓPICOS' % (idioma, kind, n_topics)
-				#print(tabla_final)
-					#res = {i:{'topico':top, 'libros':[]} for i, top in enumerate(topics)}
-					#for num_libro, (num_topico, score) in enumerate(high_topics):
-						#res[num_topico]['libros'].append((num_libro, d[num_libro], score))
-
-
-
+				files = [i.replace('.txt', '') for i in os.listdir(os.path.join(self.txt_dir,kind,idioma))]
+				res = {
+					i:{
+						'formula':topic,
+						'tags':re.sub(' \+ [\.0-9]+\*', ', ', re.sub('[\.0-9]+\*', '', topic, count=1)),
+						'documents':[]
+					}
+					for i, topic in enumerate(topics)
+				}
+				for num_doc,(num_topic, s) in enumerate(high_topics):
+					res[num_topic]['documents'].append({
+							'name':files[num_doc],
+							'topic_similarity':s
+						})
+				pprint(res)
 
 				with self.output()['langs'][idioma][n_topics].open('w') as f:
-					pd.DataFrame.to_csv(tabla_final,f)
-					#calificaciones = []
-					#for k, v in res.iteritems():
-						#print ''
-						#print v['topico']
-						#for l in v['libros']:
-							#calificaciones.append(l)
-							#print	f, l 
-					#pickle.dump(calificaciones, f)
+					json.dump(res, f)
 											
-#ANTES DE TrainLSI
-											
-#ANTES DE TrainLSI
+
