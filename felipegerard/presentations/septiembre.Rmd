@@ -1,0 +1,97 @@
+---
+title: "Minería de texto con Python + _luigi_"
+author: "Felipe Gerard"
+date: "7 de octubre de 2015"
+output: ioslides_presentation
+---
+
+## Pipeline con luigi
+
+* Mudamos el pipeline a python + _luigi_
+* Ventajas:
+    - Permite segmentar el proceso
+    - Checa dependencias solo
+    - Sólo corre lo indispensable
+    - Permite correr códigos en _R_, _bash_, etc
+    - Permite ver dónde va el proceso
+    - Permite ver el árbol de dependencias
+    - Paraleliza solo
+
+
+## Extracción y limpieza
+
+* Extraer usando python en lugar de bash
+    - Permite también procesar en paralelo
+    - n PDFs por libro --> 1 txt por libro
+* Detección de idiomas simple de GIL
+    - De qué idioma tiene más stopwords?
+* El nivel de limpieza se puede especificar
+    - Crudo (GIL)
+    - Limpieza básica
+    - Limpieza básica + quitar stopwords
+
+## Preparación para la minería
+
+* _gensim_
+    - Escalable
+* Se puede especificar qué idiomas procesar
+* Cada paso depende del nivel de limpieza
+    - No chocan (archivos con nombres distintos)
+* Diccionario
+    - Conteos de palabras
+    - Palabras permitidas
+* Corpus
+    - Es como la TDM en _R_
+
+## Tópicos con LDA
+
+* _gensim_
+* Entrenar modelo
+* Evaluar modelo en libros conocidos
+* Salida para evaluación humana
+    - PDF? txt? XML (DSpace)?
+    - Palabras clave y miembros de cada grupo
+
+## Similitudes con TF-IDF + LSI
+
+* Transformar Corpus con TF-IDF
+* Reducir dimensión con LSI (SVD)
+* Buscar similitudes en el espacio reducido
+* Primeros _k_ hits por libro
+    - XML para DSpace
+
+## Empaquetamiento
+
+* Es incómodo buscar el script: `python pipeline.py ...`
+* Mejor hacemos un paquete
+    - `itm` (ITAM text miner)
+    - Otros para los demás procesos
+* Es fácil de instalar
+    - tar + `python setup.py install`
+    - pip (work in progress)
+* __Checa las dependencias de python solo__
+* Incluye un script flexible: `itam-tm ...`
+* Una vez fija la estructura, podemos hacer un wrapper
+* Es muy fácil de hacer
+
+## Demo
+
+## Resumen
+
+* Hicimos el pipeline en Python
+* _luigi_ tiene muchas ventajas
+* Empaquetamos el código
+* Faltan detalles, pero vamos por buen camino
+* Como ya no filtramos imágenes, el pipeline es independiente del de imagen
+
+
+
+
+
+
+
+
+
+
+
+
