@@ -8,7 +8,8 @@ import re
 import pickle
 
 import json
-from markdown import markdown
+import markdown
+import pandas as pd
 
 from gensim import corpora
 from gensim.similarities import Similarity
@@ -188,7 +189,8 @@ class ShowLSI(luigi.Task):
 						{
 							n_topics:{
 								'json':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.json' % (kind, idioma, n_topics))),
-								'html':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.html' % (kind, idioma, n_topics)))
+								'html':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.html' % (kind, idioma, n_topics))),
+								'net':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.net' % (kind, idioma, n_topics)))
 							}
 							for n_topics in topic_range
 						}
@@ -215,9 +217,28 @@ class ShowLSI(luigi.Task):
 				with o['json'].open('w') as f:
 					json.dump(sims, f)
 
-				# HTML
+				# HTML + red
+				s = u''
+				net = pd.DataFrame(columns=['from_name', 'to_name', 'sim'])
+				for book, v in sims.iteritems():
+					s += u'-------------------------------------------\n'
+					s += u'### %s\n\n' % (book)
+					s += u'| Ranking | Libro | Similitud |\n|:--------:|:-------|-------------:|\n'''
+					for rank, attrs in v.iteritems():
+						s += u'| %d | %s | %f |\n' % (rank, attrs['name'], round(attrs['similarity'],3))
+						net = net.append(pd.DataFrame({'from_name':[book], 'to_name':[attrs['name']], 'sim':[attrs['similarity']]}))
+					s += u'\n\n'
+				md = markdown.markdown(s, extensions=['markdown.extensions.tables'])
+				books = sorted(list(set(net['from_name']).union(net['to_name'])))
+				ids = {v:i for i,v in enumerate(books)}
+				net['from'] = [ids[k] for k in net['from_name']]
+				net['to'] = [ids[k] for k in net['to_name']]
+
 				with o['html'].open('w') as f:
-					f.write('Prueba')
+					f.write(md)
+				with o['net'].open('w') as f:
+					net.to_csv(f, index=False)
+
 
 
 
