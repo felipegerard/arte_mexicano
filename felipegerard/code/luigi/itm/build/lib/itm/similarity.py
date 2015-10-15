@@ -10,6 +10,8 @@ import pickle
 import json
 import markdown
 import pandas as pd
+import subprocess
+import shutil
 
 from gensim import corpora
 from gensim.similarities import Similarity
@@ -138,6 +140,7 @@ class ShowLSI(luigi.Task):
 	# Parámetros GroupByLSI
 	res_dir = luigi.Parameter() # Carpeta para guardar archivos de clasificaciones
 	num_similar_docs = luigi.IntParameter(default=5)
+	min_similarity = luigi.IntParameter(default=0.5)
 	
 	# Parámetros TrainLSI
 	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
@@ -189,8 +192,9 @@ class ShowLSI(luigi.Task):
 						{
 							n_topics:{
 								'json':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.json' % (kind, idioma, n_topics))),
-								'html':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.html' % (kind, idioma, n_topics))),
-								'net':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.net' % (kind, idioma, n_topics)))
+								'csv':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-%s-%s-%d.csv' % (kind, idioma, n_topics))),
+								'html':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-table-%s-%s-%d.html' % (kind, idioma, n_topics))),
+								'net':luigi.LocalTarget(os.path.join(self.res_dir, 'lsi-results-network-%s-%s-%d.html' % (kind, idioma, n_topics)))
 							}
 							for n_topics in topic_range
 						}
@@ -217,7 +221,7 @@ class ShowLSI(luigi.Task):
 				with o['json'].open('w') as f:
 					json.dump(sims, f)
 
-				# HTML + red
+				# HTML + CSV
 				s = u''
 				net = pd.DataFrame(columns=['from_name', 'to_name', 'sim'])
 				for book, v in sims.iteritems():
@@ -236,8 +240,28 @@ class ShowLSI(luigi.Task):
 
 				with o['html'].open('w') as f:
 					f.write(md)
-				with o['net'].open('w') as f:
+				with o['csv'].open('w') as f:
 					net.to_csv(f, index=False)
+
+				# Red (en R)
+				tempname = 'net_temp0.html'
+				i = 1
+				while os.path.exists(tempname):
+					tempname = 'net_temp%d.html' % i
+					i += 1
+					if i >= 100:
+						print 'ERROR: No se puede crear la red temporal... Checa que no exista un archivo llamado %s en esta carpeta y que tienes permisos de escritura...' % tempname
+						break
+				subprocess.call(['itam-d3-network', '--input', o['csv'].path, '--output', tempname, '--max_links', str(self.num_similar_docs), '--min_sim', str(self.min_similarity)])
+				print 'USER INFO: Creando archivo temporal: ' + tempname
+				print 'shutil.move(%s, %s)' % (tempname, o['net'].path)
+				shutil.move(tempname, o['net'].path)
+				#subprocess.Popen(['mv', tempname, o['net'].path])
+				print 'USER INFO: Movimiento listo, %s --> %s' % (tempname, o['net'].path)
+				
+				if os.path.exists(tempname):
+					os.remove(tempname)
+				
 
 
 
