@@ -1,0 +1,49 @@
+---
+title: "Análisis ___clickstream___"
+author: "ITAM - Ciencia de datos "
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Análisis clickstream
+
+El análisis de *“clicksstream”* es el proceso de recolección, análisis y presentación de datos agregados sobre sucesión de clicks de cada visitante. Regularmente, dicho flujo o registro de información es almacenado en un archivo comúnmente llamado *access.log*, dichos registros sirven para ser analizados para producir estadísticas que resulten de utilidad. 
+```{r, warning=FALSE, message=FALSE, error=FALSE, echo=FALSE,fig.width=7, fig.height=3, fig.align='center',eval=TRUE}
+library(png)
+library(grid)
+img <- readPNG("~/Desktop/conacyt/shiny/flujo.png")
+grid.raster(img)
+
+
+```
+
+## Pipeline
+
+Partiendo del supuesto que de *Dspace* se obtendran los archivos *acess.log*, para poder crear el Dashbord o reportes ejecutivos, el *pipeline* se creó de la siguiente manera y es gestionado por *luigi*.
+```{r, warning=FALSE, message=FALSE, error=FALSE, echo=FALSE,fig.width=8, fig.height=4, fig.align='center',eval=TRUE}
+img1 <- readPNG("~/Desktop/conacyt/shiny/luigi.png")
+grid.raster(img1)
+```
+
+## Pipeline
+
+Desde un punto de vista de alto nivel, este sería el flujo del pipeline:
+```{r, warning=FALSE, message=FALSE, error=FALSE, echo=FALSE,fig.width=8, fig.height=4, fig.align='center',eval=TRUE}
+img2 <- readPNG("~/Desktop/conacyt/shiny/luigi2.png")
+grid.raster(img2)
+```
+
+## Proximos pasos
+
+- Creación de dashboard (*pendiente*)
+
+- Creación y almacenamiento de los access.logs pertenecientes a Dspace
+
+- Si es necesario, modificación del paso de *Usuarios*
+
+- Creación de algoritmos  de recomendaciones basados en filtros colaborativos
+
+
