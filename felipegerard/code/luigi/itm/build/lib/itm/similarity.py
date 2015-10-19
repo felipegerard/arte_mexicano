@@ -254,9 +254,7 @@ class ShowLSI(luigi.Task):
 						break
 				subprocess.call(['itam-d3-network', '--input', o['csv'].path, '--output', tempname, '--max_links', str(self.num_similar_docs), '--min_sim', str(self.min_similarity)])
 				print 'USER INFO: Creando archivo temporal: ' + tempname
-				print 'shutil.move(%s, %s)' % (tempname, o['net'].path)
 				shutil.move(tempname, o['net'].path)
-				#subprocess.Popen(['mv', tempname, o['net'].path])
 				print 'USER INFO: Movimiento listo, %s --> %s' % (tempname, o['net'].path)
 				
 				if os.path.exists(tempname):
