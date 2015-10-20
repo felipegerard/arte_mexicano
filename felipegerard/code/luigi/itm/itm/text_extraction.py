@@ -28,7 +28,7 @@ class ReadText(luigi.Task):
 	#jpg_dir = luigi.Parameter()			# Carpeta de JPGs
 	#image_meta_dir = luigi.Parameter()	# Carpeta con archivos de metadatos para definir qué archivos son imágenes
 	meta_dir = luigi.Parameter(default='meta')	# Nombre del archivo de metadatos
-	meta_file = luigi.Parameter(default='librosAgregados.tm') # Nombre del archivo de metadatos libro-idioma
+	meta_file = luigi.Parameter(default='librosAgregados.txt') # Nombre del archivo de metadatos libro-idioma
 
 	def requires(self):
 		pdf_bookdir = os.path.join(self.pdf_dir, self.book_name)
@@ -62,7 +62,7 @@ class CleanText(luigi.Task):
 	# jpg_dir = luigi.Parameter()
 	# image_meta_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
-	meta_file = luigi.Parameter(default='librosAgregados.tm')
+	meta_file = luigi.Parameter(default='librosAgregados.txt')
 	clean_level = luigi.Parameter(default='raw,clean,stopwords') # Nivel de limpieza. Cualquier combinación de 'raw', 'clean' y 'stopwords', separados por comas
 
 	def requires(self):
@@ -123,8 +123,8 @@ class DetectLanguages(luigi.Task):
 	# jpg_dir = luigi.Parameter()
 	# image_meta_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
-	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm')
+	meta_file = luigi.Parameter(default='librosAgregados.txt')
+	lang_file = luigi.Parameter(default='idiomas.txt')
 	clean_level = luigi.Parameter(default='raw,clean,stopwords')
 
 	def requires(self):

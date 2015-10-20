@@ -26,8 +26,7 @@ $ python
 ## R: Checar también: http://sysads.co.uk/2014/06/install-r-base-3-1-0-ubuntu-14-04/
 sudo apt-get install r-base-dev
 
-install.packages(c('dplyr', 'optparse', networkD3'))
-...
+> install.packages(c('dplyr', 'optparse', networkD3'))
 
 ## PARA INSTALAR EL PAQUETE
 

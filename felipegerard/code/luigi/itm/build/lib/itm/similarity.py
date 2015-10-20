@@ -34,8 +34,8 @@ class TrainLSI(luigi.Task):
 	# image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
-	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	meta_file = luigi.Parameter(default='librosAgregados.txt')
+	lang_file = luigi.Parameter(default='idiomas.txt') # Solo para tener el registro
 	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
 	max_word_length = luigi.IntParameter(default=6)
@@ -152,8 +152,8 @@ class ShowLSI(luigi.Task):
 	# image_meta_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
-	meta_file = luigi.Parameter(default='librosAgregados.tm')
-	lang_file = luigi.Parameter(default='idiomas.tm') # Solo para tener el registro
+	meta_file = luigi.Parameter(default='librosAgregados.txt')
+	lang_file = luigi.Parameter(default='idiomas.txt') # Solo para tener el registro
 	clean_level = luigi.Parameter(default='stopwords')
 	languages = luigi.Parameter()
 	max_word_length = luigi.IntParameter(default=6)
