@@ -3,13 +3,14 @@
 
 ## Python
 sudo apt-get update
+sudo apt-get upgrade # Esto hace que jale R 3.2 en lugar de 3.0
 sudo apt-get install python2.7-dev
 sudo apt-get install python-pip
 
 ## Numpy y Scipy
 sudo apt-get install python-numpy python-scipy libblas-dev liblapack-dev gfortran python2.7-dev
-sudo pip install numpy --upgrade
-sudo pip install scipy --upgrade
+#sudo pip install numpy --upgrade
+#sudo pip install scipy --upgrade
 pip install pandas
 
 ## PDF + Markdown
@@ -24,9 +25,10 @@ $ python
 >>> nltk.download('stopwords')
 
 ## R: Checar también: http://sysads.co.uk/2014/06/install-r-base-3-1-0-ubuntu-14-04/
-sudo apt-get install r-base-dev
+sudo apt-get install r-base r-base-dev
 
-> install.packages(c('dplyr', 'optparse', networkD3'))
+R -e 'install.packages(c("dplyr", "optparse", "networkD3"), repos="http://cran.us.r-project.org")'
+#> install.packages(c('dplyr', 'optparse', networkD3'))
 
 ## PARA INSTALAR EL PAQUETE
 

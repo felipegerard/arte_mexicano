@@ -25,7 +25,7 @@ class TrainLSI(luigi.Task):
 	'''Entrena modelos LSI para varios números de tópicos'''
 
 	# Parámetros LSI
-	topic_range = luigi.Parameter(default='30,31,1') # Número de topicos. Debe ser una lista de tres números, separados por comas, como las entradas de la función 'range'. Por ejemplo, si se quiere 200 tópicos, '200,201,1'. Si se quiere 10, 15 y 20, '10,21,5', etc
+	topic_range = luigi.Parameter(default='20,201,20') # Número de topicos. Debe ser una lista de tres números, separados por comas, como las entradas de la función 'range'. Por ejemplo, si se quiere 200 tópicos, '200,201,1'. Si se quiere 10, 15 y 20, '10,21,5', etc
 	
 	# Parámetros de corpus
 	pdf_dir = luigi.Parameter()
@@ -139,11 +139,11 @@ class ShowLSI(luigi.Task):
 
 	# Parámetros GroupByLSI
 	res_dir = luigi.Parameter() # Carpeta para guardar archivos de clasificaciones
-	num_similar_docs = luigi.IntParameter(default=5)
-	min_similarity = luigi.IntParameter(default=0.5)
+	num_similar_docs = luigi.IntParameter(default=6)
+	min_similarity = luigi.IntParameter(default=0)
 	
 	# Parámetros TrainLSI
-	topic_range = luigi.Parameter(default='30,31,1') #numero de topicos
+	topic_range = luigi.Parameter(default='20,201,20') #numero de topicos
 	
 	# Parámetros corpus
 	pdf_dir = luigi.Parameter()
@@ -252,7 +252,7 @@ class ShowLSI(luigi.Task):
 					if i >= 100:
 						print 'ERROR: No se puede crear la red temporal... Checa que no exista un archivo llamado %s en esta carpeta y que tienes permisos de escritura...' % tempname
 						break
-				subprocess.call(['itam-d3-network', '--input', o['csv'].path, '--output', tempname, '--max_links', str(self.num_similar_docs), '--min_sim', str(self.min_similarity)])
+				subprocess.call(['itam-d3-network.R', '--input', o['csv'].path, '--output', tempname, '--max_links', str(self.num_similar_docs), '--min_sim', str(self.min_similarity)])
 				print 'USER INFO: Creando archivo temporal: ' + tempname
 				shutil.move(tempname, o['net'].path)
 				print 'USER INFO: Movimiento listo, %s --> %s' % (tempname, o['net'].path)
