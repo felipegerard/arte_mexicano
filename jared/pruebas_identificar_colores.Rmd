@@ -1,0 +1,130 @@
+---
+title: "Pruebas identificar colores"
+author: "Jared"
+date: "October 8, 2015"
+output: html_document
+---
+
+Ver que parametro se puede usar para identificar a las imagenes con colores, la propuesta es hacer un conteo de los colores de la imagen, conteo que se tiene que hacer para crear la matriz de pagina log colores, y dejar aquellas que tienen una variedad de colores mas amplia, el objetivo seria encontrar cuantos colores deberia tener la imagen para considerarse ya como una imagen de color
+
+```{r,warning=FALSE, message=FALSE}
+library(jpeg)
+library(dplyr)
+library(spatstat)
+setwd("~/arte_mexicano-1/jared")
+```
+
+```{r,warning=FALSE, message=FALSE}
+imagenes <-list.files("Salidas/Imagenes")
+paginas <- paste("Salidas/Imagenes",imagenes, sep = "/")
+paginas <- paginas[grepl(".jpg",paginas)]
+```
+
+Una muestra de imagens con sus respectivos colores unicos dentro de la imagen.
+
+```{r,warning=FALSE, message=FALSE}
+par(mfrow = c(4, 8),mar=c(1,1,1,1))
+
+muestra_paginas <- sample(paginas,32)
+for (i in 1:32){
+  imagen <- readJPEG(muestra_paginas[i])
+  imagen <- round(imagen,1)
+  
+  r <- as.numeric(imagen[,,1])
+  g <- as.numeric(imagen[,,2])
+  b <- as.numeric(imagen[,,3])
+  
+  RGB <- data.frame(r,g,b)
+
+  RGB_conteo<- RGB %>%
+    group_by(r,g,b) %>%
+    summarise(conteo = n()) %>%
+    ungroup()
+
+  plot(1:2, type='n',xlab="",ylab="",tck=0,xaxt = 'n',yaxt = 'n')
+  title(paste("ColUn",nrow(RGB_conteo)),line=0)
+  rasterImage(imagen,1,1,2,2)
+}
+```
+
+Otra muestra:
+
+```{r,warning=FALSE, message=FALSE}
+par(mfrow = c(4, 8),mar=c(1,1,1,1))
+
+muestra_paginas <- sample(paginas,32)
+for (i in 1:32){
+  imagen <- readJPEG(muestra_paginas[i])
+  imagen <- round(imagen,1)
+  
+  r <- as.numeric(imagen[,,1])
+  g <- as.numeric(imagen[,,2])
+  b <- as.numeric(imagen[,,3])
+  
+  RGB <- data.frame(r,g,b)
+
+  RGB_conteo<- RGB %>%
+    group_by(r,g,b) %>%
+    summarise(conteo = n()) %>%
+    ungroup()
+
+  plot(1:2, type='n',xlab="",ylab="",tck=0,xaxt = 'n',yaxt = 'n')
+  title(paste("ColUn",nrow(RGB_conteo)),line=0)
+  rasterImage(imagen,1,1,2,2)
+}
+```
+
+Y otra muestra:
+
+```{r,warning=FALSE, message=FALSE}
+par(mfrow = c(4, 8),mar=c(1,1,1,1))
+
+muestra_paginas <- sample(paginas,32)
+for (i in 1:32){
+  imagen <- readJPEG(muestra_paginas[i])
+  imagen <- round(imagen,1)
+  
+  r <- as.numeric(imagen[,,1])
+  g <- as.numeric(imagen[,,2])
+  b <- as.numeric(imagen[,,3])
+  
+  RGB <- data.frame(r,g,b)
+
+  RGB_conteo<- RGB %>%
+    group_by(r,g,b) %>%
+    summarise(conteo = n()) %>%
+    ungroup()
+
+  plot(1:2, type='n',xlab="",ylab="",tck=0,xaxt = 'n',yaxt = 'n')
+  title(paste("ColUn",nrow(RGB_conteo)),line=0)
+  rasterImage(imagen,1,1,2,2)
+}
+```
+
+Un histograma de los colores unicos de las imagenes:
+
+```{r,warning=FALSE, message=FALSE}
+
+colores_unicos<-c()
+
+for (i in 1:length(paginas)){
+  imagen <- readJPEG(paginas[i])
+  imagen <- round(imagen,1)
+  
+  r <- as.numeric(imagen[,,1])
+  g <- as.numeric(imagen[,,2])
+  b <- as.numeric(imagen[,,3])
+  
+  RGB <- data.frame(r,g,b)
+
+  RGB_conteo<- RGB %>%
+    group_by(r,g,b) %>%
+    summarise(conteo = n()) %>%
+    ungroup()
+
+  colores_unicos <- append(colores_unicos,nrow(RGB_conteo))
+}
+par(mfrow = c(1, 1),mar=c(2,2,2,2))
+hist(colores_unicos, breaks = 20)
+
+```
