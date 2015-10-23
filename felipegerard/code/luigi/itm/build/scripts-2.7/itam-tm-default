@@ -19,8 +19,11 @@ do
 		--local-scheduler)
 		SCHEDULER="--local-scheduler"
 		shift;;
-		--topic-range)
-		TOPICRANGE="$2"
+		--topic-range-lda)
+		TOPICRANGELDA="$2"
+		shift;;
+		--topic-range-lsi)
+		TOPICRANGELSI="$2"
 		shift;;
 		--clean-level)
 		CLEAN="$2"
@@ -35,9 +38,14 @@ then
 	WORKERS=1
 fi
 
-if [[ "$TOPICRANGE" ]]
+if [[ "$TOPICRANGELDA" ]]
 then
-	TOPICRANGE="--topic-range $TOPICRANGE"
+	TOPICRANGELDA="--topic-range $TOPICRANGELDA"
+fi
+
+if [[ "$TOPICRANGELSI" ]]
+then
+	TOPICRANGELSI="--topic-range $TOPICRANGELSI"
 fi
 
 if [[ "$CLEAN" ]]
@@ -47,10 +55,10 @@ fi
 
 PARMS="--pdf-dir $ROOTDIR/pdf \
 	--txt-dir $ROOTDIR/txt \
+	--ext-dir extracts \
 	--model-dir $ROOTDIR/models \
 	--res-dir $ROOTDIR/results \
 	--languages $LANGUAGES \
-	$TOPICRANGE \
 	$CLEAN \
 	--workers $WORKERS \
 	$SCHEDULER"
@@ -58,8 +66,8 @@ PARMS="--pdf-dir $ROOTDIR/pdf \
 echo USER INFO: Parametros: $PARMS
 
 # Ahora sí corremos el modelo
-itam-tm ShowLSI $PARMS
-itam-tm ShowLDA $PARMS
+itam-tm ShowLSI $PARMS $TOPICRANGELSI
+itam-tm ShowLDA $PARMS $TOPICRANGELDA
 
 
 

@@ -30,8 +30,7 @@ class TrainLSI(luigi.Task):
 	# Parámetros de corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	# jpg_dir = luigi.Parameter()
-	# image_meta_dir = luigi.Parameter()
+	ext_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.txt')
@@ -46,8 +45,7 @@ class TrainLSI(luigi.Task):
 		return {
 					'dict':GenerateDictionary(pdf_dir=self.pdf_dir,
 											  txt_dir=self.txt_dir,
-											  # jpg_dir = self.jpg_dir,
-											  # image_meta_dir = self.image_meta_dir,
+											  ext_dir=self.ext_dir,
 											  model_dir=self.model_dir,
 											  meta_dir=self.meta_dir,
 											  meta_file=self.meta_file,
@@ -58,8 +56,7 @@ class TrainLSI(luigi.Task):
 											  min_docs_per_lang=self.min_docs_per_lang),
 					'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
 										  txt_dir=self.txt_dir,
-										  # jpg_dir = self.jpg_dir,
-										  # image_meta_dir = self.image_meta_dir,
+										  ext_dir=self.ext_dir,
 										  model_dir=self.model_dir,
 										  meta_dir=self.meta_dir,
 										  meta_file=self.meta_file,
@@ -148,8 +145,7 @@ class ShowLSI(luigi.Task):
 	# Parámetros corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	# jpg_dir = luigi.Parameter()
-	# image_meta_dir = luigi.Parameter()
+	ext_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.txt')
@@ -164,8 +160,7 @@ class ShowLSI(luigi.Task):
 		return TrainLSI(topic_range=self.topic_range,
 						pdf_dir=self.pdf_dir,
 						txt_dir=self.txt_dir,
-						# jpg_dir = self.jpg_dir,
-						# image_meta_dir = self.image_meta_dir,
+						ext_dir=self.ext_dir,
 						model_dir=self.model_dir,
 						meta_dir=self.meta_dir,
 						meta_file=self.meta_file,

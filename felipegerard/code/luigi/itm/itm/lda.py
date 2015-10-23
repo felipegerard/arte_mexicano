@@ -32,8 +32,7 @@ class TrainLDA(luigi.Task):
 	# Parámetros corpus y diccionario
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	# jpg_dir = luigi.Parameter()
-	# image_meta_dir = luigi.Parameter()
+	ext_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.txt')
@@ -48,8 +47,7 @@ class TrainLDA(luigi.Task):
 		return {
 					'dict':GenerateDictionary(pdf_dir=self.pdf_dir,
 											  txt_dir=self.txt_dir,
-											  # jpg_dir = self.jpg_dir,
-											  # image_meta_dir = self.image_meta_dir,	
+											  ext_dir = self.ext_dir,
 											  model_dir=self.model_dir,
 											  meta_dir=self.meta_dir,
 											  meta_file=self.meta_file,
@@ -60,8 +58,7 @@ class TrainLDA(luigi.Task):
 											  min_docs_per_lang=self.min_docs_per_lang),
 					'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
 										  txt_dir=self.txt_dir,
-										  # jpg_dir = self.jpg_dir,
-										  # image_meta_dir = self.image_meta_dir,
+										  ext_dir = self.ext_dir,
 										  model_dir=self.model_dir,
 										  meta_dir=self.meta_dir,
 										  meta_file=self.meta_file,
@@ -137,8 +134,7 @@ class PredictLDA(luigi.Task):
 	# Variables de corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	# jpg_dir = luigi.Parameter()
-	# image_meta_dir = luigi.Parameter()
+	ext_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.txt')
@@ -157,8 +153,7 @@ class PredictLDA(luigi.Task):
 							n_passes=self.n_passes,
 							pdf_dir=self.pdf_dir,
 							txt_dir=self.txt_dir,
-							# jpg_dir = self.jpg_dir,
-							# image_meta_dir = self.image_meta_dir,
+							ext_dir=self.ext_dir,
 							model_dir=self.model_dir,
 							meta_dir=self.meta_dir,
 							meta_file=self.meta_file,
@@ -170,8 +165,7 @@ class PredictLDA(luigi.Task):
 
 				'corp':GenerateCorpus(pdf_dir=self.pdf_dir,
 									  txt_dir=self.txt_dir,
-									  # jpg_dir = self.jpg_dir,
-									  # image_meta_dir = self.image_meta_dir,
+									  ext_dir=self.ext_dir,
 									  model_dir=self.model_dir,
 									  meta_dir=self.meta_dir,
 									  meta_file=self.meta_file,
@@ -256,8 +250,7 @@ class ShowLDA(luigi.Task):
 	#variables de corpus
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	#jpg_dir = luigi.Parameter()
-	#image_meta_dir = luigi.Parameter()
+	ext_dir = luigi.Parameter()
 	model_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.txt')
@@ -277,8 +270,7 @@ class ShowLDA(luigi.Task):
 							n_passes=self.n_passes, 
 							pdf_dir=self.pdf_dir,
 							txt_dir=self.txt_dir,
-							#jpg_dir = self.jpg_dir,
-							#image_meta_dir = self.image_meta_dir,
+							ext_dir=self.ext_dir,
 							model_dir=self.model_dir,
 							meta_dir=self.meta_dir,
 							meta_file=self.meta_file,

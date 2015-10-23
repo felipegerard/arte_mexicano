@@ -102,7 +102,24 @@ def save_content(target_dir, book_name, content):
 	print book_name + ' --> ' + target_dir
 
 
+def get_extracts(string, min_length=500, percentages=[0.1,0.5,0.9], max_start_offset=10, max_lines=20):
+    str_list = string.split('\n')
+    positions = [int(p*len(str_list)) for p in percentages]
+    extracts = []
 
+    for p in positions:
+        s = ''
+        for i in range(p, min(p + max_start_offset, len(str_list)-1), 1):
+            if len(str_list[i]) > 0 and str_list[i][0].isupper():
+                break
+            p = p + 1
+        for i in range(p, min(p + max_lines, len(str_list)-1), 1):
+            if len(s) >= min_length:
+                break
+            else:
+                s += '\n' + str_list[i]
+        extracts.append({'start_line':p, 'start_line_perc':round(1.0*p/len(str_list),3), 'text':s})
+    return extracts
 
 
 

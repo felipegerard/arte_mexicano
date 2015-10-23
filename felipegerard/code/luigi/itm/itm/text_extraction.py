@@ -7,6 +7,7 @@ import re
 import pickle
 import unicodedata
 import shutil
+import json
 
 from text_extraction_functions import *
 from text_clean_functions import clean_text, remove_stopwords, remove_accents
@@ -17,7 +18,7 @@ class InputPDF(luigi.ExternalTask):
 	def output(self):
 		return luigi.LocalTarget(self.filename)
 
-# Extract raw text
+# Read raw text from PDF files and join them in a single .txt. Then extract 3 sentences into a json file
 class ReadText(luigi.Task):
 	'''Extraer texto de los PDFs de un libro,
 	pegarlos en un solo archivo en formato crudo
@@ -25,8 +26,7 @@ class ReadText(luigi.Task):
 	book_name = luigi.Parameter()		# Nombre del libro
 	pdf_dir = luigi.Parameter() 		# Carpeta de PDFs
 	txt_dir = luigi.Parameter()			# Carpeta de textos
-	#jpg_dir = luigi.Parameter()			# Carpeta de JPGs
-	#image_meta_dir = luigi.Parameter()	# Carpeta con archivos de metadatos para definir qué archivos son imágenes
+	ext_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')	# Nombre del archivo de metadatos
 	meta_file = luigi.Parameter(default='librosAgregados.txt') # Nombre del archivo de metadatos libro-idioma
 
@@ -35,7 +35,7 @@ class ReadText(luigi.Task):
 		return InputPDF(pdf_bookdir)
 
 	def output(self):
-		return luigi.LocalTarget(os.path.join(self.txt_dir,self.meta_dir,self.book_name+'.meta'))
+		return luigi.LocalTarget(os.path.join(self.txt_dir,'raw',self.meta_dir,self.book_name+'.meta'))
 		
 	def run(self):
 		# Extraer textos
@@ -43,14 +43,23 @@ class ReadText(luigi.Task):
 		rutaVolumenes = obtener_rutas(ruta_pdfs, extension='.pdf')
 		contenido = convertirVolumenes(rutaVolumenes)
 		idioma = detectarIdioma(contenido)
-		lang_path = os.path.join(self.txt_dir,idioma)
+		lang_path = os.path.join(self.txt_dir,'raw',idioma)
 		save_content(lang_path, self.book_name, contenido)
+
+		# Generar y guardar extractos de texto
+		extracts = get_extracts(contenido)
+		ext_out = os.path.join(self.txt_dir,self.ext_dir)
+		if not os.path.exists(ext_out):
+			os.makedirs(ext_out)
+		with open(os.path.join(ext_out,self.book_name+'.json'), 'w') as f:
+			f.write(json.dumps(extracts, f, ensure_ascii=False, sort_keys=True,
+				indent=4, separators=(',', ': '), encoding='utf-8'))
 
 		# Guardar los metadatos
 		with self.output().open('w') as f:
 			f.write(idioma)
-		guardarMetadatos(self.book_name,idioma,
-			os.path.join(self.txt_dir),self.meta_file)
+		guardarMetadatos(self.book_name, idioma,
+			os.path.join(self.txt_dir,'raw'), self.meta_file)
 
 # Clean text
 class CleanText(luigi.Task):
@@ -59,8 +68,7 @@ class CleanText(luigi.Task):
 	book_name = luigi.Parameter()
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	# jpg_dir = luigi.Parameter()
-	# image_meta_dir = luigi.Parameter()
+	ext_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.txt')
 	clean_level = luigi.Parameter(default='raw,clean,stopwords') # Nivel de limpieza. Cualquier combinación de 'raw', 'clean' y 'stopwords', separados por comas
@@ -68,9 +76,8 @@ class CleanText(luigi.Task):
 	def requires(self):
 		return ReadText(book_name = self.book_name,
 						pdf_dir = self.pdf_dir,
-						txt_dir = os.path.join(self.txt_dir, 'raw'),
-						# jpg_dir = self.jpg_dir,
-						# image_meta_dir = self.image_meta_dir,
+						txt_dir = self.txt_dir,
+						ext_dir = self.ext_dir,
 						meta_dir = self.meta_dir,
 						meta_file = self.meta_file)
 
@@ -120,8 +127,7 @@ class DetectLanguages(luigi.Task):
 	con los nombres de todos los idiomas detectados'''
 	pdf_dir = luigi.Parameter()
 	txt_dir = luigi.Parameter()
-	# jpg_dir = luigi.Parameter()
-	# image_meta_dir = luigi.Parameter()
+	ext_dir = luigi.Parameter()
 	meta_dir = luigi.Parameter(default='meta')
 	meta_file = luigi.Parameter(default='librosAgregados.txt')
 	lang_file = luigi.Parameter(default='idiomas.txt')
@@ -131,8 +137,7 @@ class DetectLanguages(luigi.Task):
 		return [CleanText(book_name=book_name,
 						  pdf_dir=self.pdf_dir,
 						  txt_dir=self.txt_dir,
-						  # jpg_dir = self.jpg_dir,
-						  # image_meta_dir = self.image_meta_dir,
+						  ext_dir=self.ext_dir,
 						  meta_dir=self.meta_dir,
 						  meta_file=self.meta_file,
 						  clean_level=self.clean_level)
