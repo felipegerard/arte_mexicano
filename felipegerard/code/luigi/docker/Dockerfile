@@ -12,30 +12,43 @@ MAINTAINER Felipe Gerard
 ENV TERM=xterm-256color
 
 # Install linear algebra, pandoc, python and R
-RUN apt-get update -y
-RUN apt-get upgrade -y
-RUN sudo apt-get install -y \
+
+RUN echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list && \
+	sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9 && \
+	apt-get update && \
+	apt-get upgrade
+
+RUN apt-get install -y \
 	python2.7-dev \
-	python-pip \
+	python-pip
+
+RUN apt-get install -y \
+	r-base \
+	r-base-dev && \
+	R --version
+
+RUN apt-get install -y \
 	libblas-dev \
 	liblapack-dev \
 	gfortran \
-	pandoc \
+	pandoc
+
+RUN apt-get install -y \
 	python-numpy \
-	python-scipy \
-	r-base \
-	r-base-dev
+	python-scipy
+
+# Install itm
+ENV PACK=itm-0.1
+COPY ${PACK}.tar.gz /tmp/
+RUN echo ${PACK}.tar.gz && \
+	cd /tmp && \
+	tar xzf ${PACK}.tar.gz && \
+	cd ${PACK} && \
+	python setup.py install
 
 # Install R libraries and download nltk stopwords
 RUN R -e 'install.packages(c("dplyr", "optparse", "networkD3"), repos="http://cran.us.r-project.org")'
 RUN python -c "import nltk; nltk.download('stopwords')"
-
-# Install itm (debe hacerse a mano el tar y el install por ahora)
-ENV PACK=itm-0.1
-COPY ${PACK}.tar.gz /tmp/
-#RUN echo ${PACK}.tar.gz
-#RUN tar xzf /tmp/${PACK}.tar.gz
-#RUN python /tmp/${PACK}/setup.py install
 
 # System structure
 #RUN mkdir -p /home/ubuntu
