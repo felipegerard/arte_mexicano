@@ -11,9 +11,11 @@ setup(name='itm',
 	scripts=['bin/itam-tm', 'bin/itam-tm-default', 'bin/itam-d3-network.R'],
 	install_requires=[
 		'luigi>=1.3.0',
+		'numpy>=1.8.2',
+		'scipy>=0.7.0',
 		'pdfminer>=20140328',
 		'gensim>=0.12.1',
-		'scipy>=0.7.0',
+		'pandas>=0.17.0',
 		'nltk>=3.0.5',
 		'markdown>=2.6.2'
 		],
