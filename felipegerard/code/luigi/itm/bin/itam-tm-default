@@ -65,6 +65,9 @@ PARMS="--pdf-dir $ROOTDIR/pdf \
 
 echo USER INFO: Parametros: $PARMS
 
+# Quitamos .DS_Store
+find $ROOTDIR -name '*.DS_Store' -type f -delete
+
 # Ahora sí corremos el modelo
 itam-tm ShowLSI $PARMS $TOPICRANGELSI
 itam-tm ShowLDA $PARMS $TOPICRANGELDA
