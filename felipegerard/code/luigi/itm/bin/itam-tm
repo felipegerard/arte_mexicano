@@ -1,0 +1,9 @@
+# coding=utf-8
+
+import luigi
+import argparse
+from itm import *
+
+if __name__ == '__main__':
+    luigi.run()
+

@@ -1,4 +1,6 @@
 text
+test*
 test
-test_old
 *.log
+*.pyc
+vmdir
