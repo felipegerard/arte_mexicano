@@ -174,15 +174,77 @@ python -c "import nltk; nltk.download('stopwords')"
 
 ### (ii) Breve guía de uso
 
-Una vez instalado el paquete se puede acceder a los ejecutables desde la consola. Para facilitar su uso se escribieron dos *wrappers*, uno *simple* que sólo pide los parámetros indispensables (`itam-tm-default`) y otro *avanzado* (`itam-tm`) que requiere que se especifique todos los parámetros de entrada internos del proceso de `luigi`. El ejecutable *avanzado* corre un solo proceso a la vez y se debe conocer cómo funciona internamente el paquete, mientras que el *simple* corre todos los análisis para valores especificados de los parámetros. A continuación mostraremos cómo utilizar el *simple* para correr el análisis.
+Una vez instalado el paquete se puede acceder a los ejecutables desde la consola. Para facilitar su uso se escribieron dos *wrappers*, uno *simple* que sólo pide los parámetros indispensables (`itam-tm-default`) y otro *avanzado* (`itam-tm`) que requiere que se especifique todos los parámetros de entrada internos del proceso de `luigi`. El ejecutable *avanzado* corre un solo proceso a la vez y se debe conocer cómo funciona internamente el paquete, mientras que el *simple* corre todos los análisis para valores especificados de los parámetros.
 
+A continuación se muestra cómo utilizar el *simple* para correr el análisis. Con el fin de probar la instalación y que todo corriera sin problemas, se instaló el paquete en un contenedor de Docker, desde donde se ejecutará todo.
 
+Se empieza con una carpeta `test` en donde están los datos crudos:
 
+```
+root@7351c9042a96:/home/itam# ls -lh test
+total 0
+drwxr-xr-x 1 1000 staff 340 Oct 27 01:49 jpg
+drwxr-xr-x 1 1000 staff 340 Nov  3 22:32 pdf
+root@7351c9042a96:/home/itam# ls -lh test/pdf/
+total 0
+drwxr-xr-x 1 1000 staff  748 Oct 27 01:49 1200_years_of_italian_sculpture
+drwxr-xr-x 1 1000 staff  680 Oct 27 01:49 12_dibujos_de_jose_maria_velasco
+drwxr-xr-x 1 1000 staff 2.8K Oct 27 01:49 20_dibujos_mexicanos_de_maroto
+drwxr-xr-x 1 1000 staff 2.5K Oct 27 01:49 revue_des_peintres
+drwxr-xr-x 1 1000 staff  952 Oct 27 01:49 tehuantepec
+drwxr-xr-x 1 1000 staff 1.8K Oct 27 01:49 vitral
+drwxr-xr-x 1 1000 staff  884 Oct 27 01:49 zuniga
+drwxr-xr-x 1 1000 staff  918 Oct 27 01:50 zurbaran
+root@7351c9042a96:/home/itam# ls -lh test/pdf/zuniga/
+total 12M
+-rw-r--r-- 1 1000 staff 278K Oct 27 01:49 zun-ctp_00000001.pdf
+-rw-r--r-- 1 1000 staff 261K Oct 27 01:49 zun-int_00000001.pdf
+-rw-r--r-- 1 1000 staff 168K Oct 27 01:49 zun-int_00000002.pdf
+-rw-r--r-- 1 1000 staff 208K Oct 27 01:49 zun-int_00000003.pdf
+-rw-r--r-- 1 1000 staff 164K Oct 27 01:49 zun-int_00000004.pdf
+-rw-r--r-- 1 1000 staff 139K Oct 27 01:49 zun-int_00000005.pdf
+```
 
+El siguiente paso es inicializar el servidor de `luigi`, con el comando siguiente (o alternativamente, se puede agregar `--local-sceduler` al llamar `itam-tm-default`):
 
+```
+root@7351c9042a96:/home/itam# luigid --background &
+```
 
+Lo anterior deja el servidor corriendo en segundo plano de manera silenciosa. En la dirección IP `8082` `luigi` genera un dashboard desde el cual se puede ver el avance. Se puede acceder a él desde un navegador yendo a la dirección `localhost:8082`. Ya con eso andando sólo es necesario correr el siguiente comando (parámetros de ejemplo):
 
+```
+root@7351c9042a96:/home/itam# itam-tm-default \
+  -d test \
+  --languages spanish,english \
+  --clean-level clean,stopwords
+  --topic-range-lda 3,10,2 \
+  --topic-range-lsi 40,81,20 \
+  --workers 6
+```
 
+Los parámetros equivalen a lo siguiente:
+
+* `-d [ruta/maestra]` es la ruta que contiene la carpeta `pdf`.
+* `--languages idioma1[,idioma2[,...]]` son los idiomas a procesar. Hay que notar que siempre se limpian todos los textos que no hayan sido procesados antes. Esta bandera afecta desde la creación del diccionario y el corpus en adelante.
+* `--clean-level (raw|clean|stopwords)[,(raw|clean|stopwords)[,...]]` agrega los niveles de limpieza a procesar y a modelar.
+* `--topic-range-lda start,stop+1,step` hace un modelo LDA para cada nivel de limpieza y para cada número de tópicos, para `start, start + step, ..., stop`.
+* `--topic-range-lsi start,stop+1,step` hace un modelo LSI para cada nivel de limpieza y para cada número de tópicos, para `start, start + step, ..., stop`.
+* `--workers n` lleva a cabo el proceso de extracción y limpieza con `n` procesos en paralelo.
+
+Una vez corriendo lo anterior, el dashboard se ve, por ejemplo, como sigue:
+
+![Dashboard de `luigi`](images/dashboard.png)
+
+El dashboard provee muchas formas prácticas para filtrar las tareas, según si están corriendo, si terminaron, si tuvieron algún problema, etc. Se puede ver también la información más relevante, como qué proceso está corriendo y con qué parámetros y qué proceso se está encargando de hacerlo. `luigi` también proporciona una vista de red, en la que se puede ver gráficamente el árbol de dependencias:
+
+![Árbol de dependencias del LSI](images/detail.png)
+
+En este caso se puede ver que hay 6 procesos corriendo en paralelo (azul) la limpieza, y que la creación de modelos se hace en serie (se eligió hacerlo así por razones de memoria). Los nodos verdes ya han sido completados con éxito y los amarillos aún no tienen todas sus dependencias para poder correr o están esperando a que un trabajador se libere para ejecutarlas.
+
+Con la gráfica es fácil ilustrar algunas de las ventajas del orquestador. Por ejemplo, si se agregan dos libros a la colección, sólo corren los procesos que son estrictamente necesarios (aquí, los modelos, etc.), pero no la limpieza que ya haya sido ejecutada:
+
+![Árbol de dependencias del LSI con dos libros que no habían sido procesados](images/detail2.png)
 
 
 
