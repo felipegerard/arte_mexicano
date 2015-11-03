@@ -1,0 +1,67 @@
+---
+title: "ITAM Text Miner"
+author: "Felipe Gerard"
+date: "2 de noviembre de 2015"
+output: pdf_document
+---
+
+# El problema por resolver
+
+# Orquestación
+
+Es importante que un sistema de análisis de esta escala sea robusto y confiable. Para ello se optó por utilizar el orquestador [luigi][http://luigi.readthedocs.org/en/stable/], que fue desarrollado por Spotify en el lenguaje `Python`. Este esquema tiene varias ventajas sobre los scripts simples, algunas de las cuales se enumeran a continuación:
+
+1. *Modularidad:* El código se segmenta en pasos bien definidos, lo que facilita su mantenimiento y expansión.
+2. *Robustez:* Se requiere que todos los pasos serialicen sus resultados a disco, lo que hace que el sistema sea resistente a fallos y que no tenga que repetir todo el proceso después de un error.
+3. *Idempotencia:* Si se programa correctamente, los procesos sólo corren una vez. Incluso si se corre el proceso una segunda vez, sólo corre lo que no haya sido corrido antes.
+
+Obtener estas ventajas es relativamente simple con `luigi`. Lo único que se requiere es que los pasos tengan entradas y salidas bien definidas; un proceso únicamente requiere sus dependencias para correr y debe arrojar los resultados que necesite la siguiente sección.
+
+`luigi` corre nativamente en `Python`, por lo que se puede hacer cualquier cosa que se pueda hacer en `Python`. Esto incluye llamar códigos en `shell`, `R` y muchos otros lenguajes. La mayoría de los procesos se hicieron directamente en `Python` por simplicidad, pero algunos se dejaron en otros lenguajes por diversas razones de conveniencia.
+
+## Extracción de texto
+
+En esta sección definimos a grandes rasgos los diversos componentes del *pipeline* de datos, desde los archivos en PDF crudos hasta las salidas necesarias para mostrar en el producto final.
+
+### Pegado de PDFs en archivos de 50 MB
+Petri
+### Extracción de texto a partir de PDFs
+### Fragmentos
+### Limpieza de textos
+
+## Minería de textos
+
+### Detección de idioma
+### Vectorización de textos
+### Latent Dirichlet Analysis: Clusters por tópicos
+Lechuga
+### Latent Semantic Indexing: Documentos similares
+
+## Paquete
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
