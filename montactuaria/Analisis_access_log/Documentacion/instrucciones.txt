@@ -1,0 +1,46 @@
+Con el propósito de realizar recomendaciones a usuarios que accedan a la biblioteca de arte mexicano desde D-space, en el segundo entregable se entendió que D-space por medio de Apache arroja 2 tipos de archivos logs, el access.log y error.log. Para nuestro caso, es necesario realizar el análisis del contenido de los access.log. 
+Dado que aún no se tiene información de los access.log, se decidió realizar una descarga de muestra de http://www.veterina.jemnice.cz/access.log junto con información de la página de Apache http://httpd.apache.org/docs/2.0/es/logs.html ya que en sí, la estructura enter cada common log es la misma.
+
+En total la muestra tiene 312 registros logs, los cuales al igual que los libros de pdf, tienen que pasar por un proceso de transformación de los datos, con la finalidad de construir una estructura que pueda ser analizada.
+
+Se encontraron 4 funciones (carpeta codigo) de las cuales fue elejida  la “accesslog2csv.pl” https://github.com/woonsan/accesslog2csv, la cual convierte los archivos de access.log en archivos .csv y que además, los logs que por alguna extraña razón no pudieron ser transformado, se crea un archivo .txt llamado invalid_log_lines.txt.
+
+Para poder ser utilizado el script, es necesario tener instalado “perl”. https://www.perl.org/get.html
+
+Una vez instalado, la ejecución es de la siguiente forma:
+
+perl accesslog2csv.pl < access.log > csv_output_file.csv 2> invalid_log_lines.txt
+
+El cuál  creará 2 archivos, uno de error(.txt) y el otro de interes(.csv) el cuál es el que será utilizado, este último arroga los siguientes campos ya estructurados:
+
+"Host"  La dirección IP del cliente que accede al servidor web 127.0.0.1
+“Log.Name" El identificador de cliente en la máquina cliente frank
+"Date.Time"     Fecha  2000-10-10 13:5
+"Time.Zone"    Zona horaria	
+"Method"        petición enviada por el cliente, inidicando el tipo (normalmente GET o POST), la URL y la versión del protocolo utilizado (normalmente HTTP/1.1).
+"URL"           /access.log
+"Response.Code"   Código de respuesta de la página. El código 200 corresponde a una petición atendida normalmente. Otros códigos habituales son 404 (página no encontrada), 302 (redirección temporal) y 301 (redirección permanente).
+"Bytes.Sent"   Es el número de bytes entregados por el servidor en la página de respuesta a la petición.  
+ "Referer"       Es la página en donde se encuentra el enlace que ha generado la petición al servidor
+http://www.veterina.jemnice.cz/
+"User.Agent" Es una cadena que identifica al navegador desde el cual se ha realizado la petición.
+Mozilla/5.0 (Windows NT 6.3; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0 AlexaToolbar/alxf-2.21
+
+La salida de “ejemplo” se encuentra en la carpeta resultados. Es necesario tener la información generada del D-space de arte mexicano, ya que dado la respuesta obtenida por la gente de Eficiencia Informativa el día 10 de Septiembre:
+
+Nosotros:el dspace va a correr en una sola máquina física para consulta o se va a poder consultar desde diferentes máquinas?
+
+Efinfo: Es una maquina virtual dentro de un servidor físico el cual se podrá consultar vía remota y por varios usuarios.
+
+Posiblemente al tener la información, se tenga una completa identificación de los usuarios y con esto poder realizar la recomendación a estos usuarios y a los nuevos usuarios, lo anterior se menciona ya que  en este tipo de análisis, una de las tareas a realizar es la identificación de usuarios, ya que comúnmente, sólo es necesario el campo de la IP pero en algunos otros donde las peticiones a una página se hacen con la misma IP, se tienen que considerar otro conjunto de variables. Lo anterior es independiente entre las tareas ya que la arquitectura y la teoría es la misma.
+
+Próximos pasos:
+
+1-Creación de modelo de recomendación basado en filtros colaborativos
+2- Construcción de pipeline 
+3- Orquestación con luigi
+4-Recopilar información (logs) de D-space de la biblioteca de arte mexicano
+
+
+
+
