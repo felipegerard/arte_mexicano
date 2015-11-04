@@ -28,6 +28,15 @@ do
 		--clean-level)
 		CLEAN="$2"
 		shift;;
+		-i|--identificator)
+		ID="$2"
+		shift;;
+		--no-timestamp)
+		NOTS=true
+		shift;;
+		--no-md5)
+		NOMD5=true
+		shift;;
 		*)
 		shift;;
 	esac
@@ -53,17 +62,46 @@ then
 	CLEAN="--clean-level $CLEAN"
 fi
 
+if [[ "$ID" ]]
+then
+	ID="-$(echo "$ID" | tr ' ' '-')"
+else
+	ID=""
+fi
+
+if ! [[ "$NOTS" ]]
+then
+	TS=$(date +"%Y%m%d-%T" | sed 's/://g')
+	ID="${ID}-${TS}"
+fi
+
+if ! [[ "$NOMD5" ]]
+then
+	echo "USER INFO: Calculando suma MD5 de la carpeta $ROOTDIR/pdfpara verificar entradas..."
+	if [ "$(uname)" == "Darwin" ] # Mac
+	then
+		MD5=$(find $ROOTDIR/pdf -type f -exec md5 {} \; | cut -d' ' -f4 | sort | md5)
+	else # Linux
+		MD5=$(find $ROOTDIR/pdf -type f -exec md5sum {} \; | cut -d' ' -f1 | sort | md5sum | cut -d ' ' -f1)
+	fi
+	ID="${ID}-${MD5}"
+fi
+
+
 PARMS="--pdf-dir $ROOTDIR/pdf \
 	--txt-dir $ROOTDIR/txt \
 	--ext-dir extracts \
-	--model-dir $ROOTDIR/models \
-	--res-dir $ROOTDIR/results \
+	--model-dir $ROOTDIR/models$ID \
+	--res-dir $ROOTDIR/results$ID \
 	--languages $LANGUAGES \
 	$CLEAN \
 	--workers $WORKERS \
 	$SCHEDULER"
 
-echo USER INFO: Parametros: $PARMS
+echo "USER INFO: Parametros: $PARMS"
+
+# Quitamos .DS_Store
+find $ROOTDIR -name '*.DS_Store' -type f -delete
 
 # Ahora sí corremos el modelo
 itam-tm ShowLSI $PARMS $TOPICRANGELSI
