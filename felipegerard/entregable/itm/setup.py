@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='itm',
-	version='0.1',
+	version='0.2',
 	description='Extraccion y mineria de textos.',
 	url='http://github.com/felipegerard/arte_mexicano_antiguo',
 	author='Felipe Gerard',
