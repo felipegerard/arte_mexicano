@@ -1,0 +1,210 @@
+# -*- coding: utf-8 -*-
+
+import luigi
+from luigi import configuration
+from luigi.s3 import S3Target, S3PathTask
+from luigi import six
+import unicodedata
+import shutil
+from pprint import pprint
+import pandas as pd
+import csv
+import pickle
+import inspect, os
+import requests
+from os import listdir
+import numpy as np
+import subprocess
+from sklearn.decomposition import NMF
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from pandas.tools.plotting import bootstrap_plot
+from pandas.tools.plotting import scatter_matrix
+
+
+execfile('functions/functions.py')
+
+#########################cuerpo luigi
+
+class Inputlog(luigi.ExternalTask):
+    filename = luigi.Parameter()
+
+    def output(self):
+
+        return luigi.LocalTarget(self.filename)
+
+class Parsear(luigi.Task):
+	input_file = luigi.Parameter()
+	output_file = luigi.Parameter()
+	#par = luigi.FloatParameter(default=10.0)
+
+	def requires(self):
+		return Inputlog(self.input_file)
+
+	def output(self):
+		return luigi.LocalTarget(self.output_file)
+
+	def run(self):
+
+		with open(self.input().path) as f:
+		    f = f.readlines()
+
+		array=[]
+		for i in range(len(f)):
+			array.append(apache2_logrow(f[i]))
+
+		df = pd.DataFrame(array)
+		df.columns = ['Host','Log_Name1','Log_Name','Date_Time','Method','Response_Code','Bytes_Sent','URL','User_Agent']
+		
+		pd.save(df,self.output().path)  
+
+class Usuario(luigi.Task):
+	
+	input_file = luigi.Parameter() #csv_output_file1.csv
+	#output_file = luigi.Parameter() #pruebapandas2.pd
+	#par = luigi.FloatParameter(default=10.0)
+
+	# Parametros de reporte
+	output_df = luigi.Parameter() #pruebapandas2.pd
+	# fechas
+	#ydate = luigi.Parameter()
+	#wdate = luigi.Parameter()
+	#output_img = luigi.Parameter()
+	#output_err = luigi.Parameter()
+	#output_usr = luigi.Parameter()
+
+	def requires(self):
+		#return Parsear(self.input_file, self.output_df, self.par)
+		return Parsear(self.input_file, self.output_df)
+
+	def output(self):      
+		return luigi.LocalTarget(self.output_df)
+
+	def run(self):
+		df= pd.load(self.input().path)
+		df=df.drop_duplicates(['Host', 'Date_Time','URL'])
+		df = df.sort(['Host', 'Date_Time','Response_Code'], ascending=[1,1,0])
+		df["Date_Time"] = df["Date_Time"].map(lambda x: str(x)[0:20])
+		df = df.drop(df.index[[len(df)-1]])
+
+		print df.head()
+
+		pd.save(df,self.output().path)  
+
+if __name__ == '__main__':
+	luigi.run()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -*- coding: utf-8 -*-
+
+import luigi
+from luigi import configuration
+from luigi.s3 import S3Target, S3PathTask
+from luigi import six
+import unicodedata
+import shutil
+from pprint import pprint
+import pandas as pd
+import csv
+import pickle
+import inspect, os
+import requests
+from os import listdir
+import numpy as np
+import subprocess
+from sklearn.decomposition import NMF
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from pandas.tools.plotting import bootstrap_plot
+from pandas.tools.plotting import scatter_matrix
+
+
+execfile('functions/functions.py')
+
+#########################cuerpo luigi
+
+class Inputlog(luigi.ExternalTask):
+    filename = luigi.Parameter()
+
+    def output(self):
+
+        return luigi.LocalTarget(self.filename)
+
+class Parsear(luigi.Task):
+	input_file = luigi.Parameter()
+	output_file = luigi.Parameter()
+	#par = luigi.FloatParameter(default=10.0)
+
+	def requires(self):
+		return Inputlog(self.input_file)
+
+	def output(self):
+		return luigi.LocalTarget(self.output_file)
+		#return luigi.LocalTarget(self.output_file + ".pd")
+		#return luigi.LocalTarget("data/%s.pd" % self.output_file)
+
+	def run(self):	
+
+		with open(self.input().path) as f:
+		    f = f.readlines()
+
+		array=[]
+		for i in range(len(f)):
+			array.append(apache2_logrow(f[i]))
+
+
+		df = pd.DataFrame(array)
+		df.columns = ['Host','Log_Name1','Log_Name','Date_Time','Method','Response_Code','Bytes_Sent','URL','User_Agent']
+	
+		pd.to_pickle(df,self.output().path)  
+
+class Usuario(luigi.Task):
+	
+	input_file = luigi.Parameter() 
+	output_file = luigi.Parameter() 
+	output_df = luigi.Parameter() 
+	#input_df = luigi.Parameter() 
+	#output_df1 = luigi.Parameter() 
+
+	def requires(self):
+		#return Parsear(self.input_file, self.output_df, self.par)
+		return Parsear(self.input_file, self.output_file)
+
+	def output(self):      
+		
+		return luigi.LocalTarget(self.output_df)
+		
+
+	def run(self):
+		df=pd.read_pickle(self.input().path)
+		#df=pd.read_pickle(self.output().path)
+		df=df.drop_duplicates(['Host', 'Date_Time','URL'])
+		df = df.sort(['Host', 'Date_Time','Response_Code'], ascending=[1,1,0])
+		df["Date_Time"] = df["Date_Time"].map(lambda x: str(x)[0:20])
+		df = df.drop(df.index[[len(df)-1]])
+
+		print df.head()
+
+		pd.save(df,self.output().path)  
+
+if __name__ == '__main__':
+	luigi.run()
+
