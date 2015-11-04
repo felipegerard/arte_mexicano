@@ -28,7 +28,7 @@ do
 		--clean-level)
 		CLEAN="$2"
 		shift;;
-		-i|--identificator)
+		-i|--identifier)
 		ID="$2"
 		shift;;
 		--no-timestamp)

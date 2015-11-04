@@ -216,6 +216,8 @@ Lo anterior deja el servidor corriendo en segundo plano de manera silenciosa. En
 ```
 root@7351c9042a96:/home/itam# itam-tm-default \
   -d test \
+  --identifier prueba \
+  --no-timestamp \
   --languages spanish,english \
   --clean-level clean,stopwords
   --topic-range-lda 3,10,2 \
@@ -225,8 +227,11 @@ root@7351c9042a96:/home/itam# itam-tm-default \
 
 Los parámetros equivalen a lo siguiente:
 
-* `-d [ruta/maestra]` es la ruta que contiene la carpeta `pdf`.
+* `-d, --root-directory [ruta/maestra]` es la ruta que contiene la carpeta `pdf`.
 * `--languages idioma1[,idioma2[,...]]` son los idiomas a procesar. Hay que notar que siempre se limpian todos los textos que no hayan sido procesados antes. Esta bandera afecta desde la creación del diccionario y el corpus en adelante.
+* `-i, --indentifier [nombre]` le pone el sufijo `nombre` a las carpetas de modelos y resultados con el fin de distinguir diversos experimentos.
+* `[--no-timestamp]` no poner *timestamp* en el nombre de las carpetas de modelos y resultados después del identificador.
+* `[--no-md5]` no checar las sumas MD5 de los PDFs de entrada ni ponerla en el nombre de las carpetas de modelos y resultados después del *timestamp* (si hay).
 * `--clean-level (raw|clean|stopwords)[,(raw|clean|stopwords)[,...]]` agrega los niveles de limpieza a procesar y a modelar.
 * `--topic-range-lda start,stop+1,step` hace un modelo LDA para cada nivel de limpieza y para cada número de tópicos, para `start, start + step, ..., stop`.
 * `--topic-range-lsi start,stop+1,step` hace un modelo LSI para cada nivel de limpieza y para cada número de tópicos, para `start, start + step, ..., stop`.
