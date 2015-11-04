@@ -1,0 +1,76 @@
+#! /bin/bash
+# coding=utf-8
+
+while [[ $# > 0 ]]
+do
+	key="$1"
+	case $key in
+		# Parámetros obligatorios
+		-d|--root-directory)
+		ROOTDIR="$2"
+		shift;;
+		--languages)
+		LANGUAGES="$2"
+		shift;;
+		# Parámetros opcionales
+		--workers)
+		WORKERS="$2"
+		shift;;
+		--local-scheduler)
+		SCHEDULER="--local-scheduler"
+		shift;;
+		--topic-range-lda)
+		TOPICRANGELDA="$2"
+		shift;;
+		--topic-range-lsi)
+		TOPICRANGELSI="$2"
+		shift;;
+		--clean-level)
+		CLEAN="$2"
+		shift;;
+		*)
+		shift;;
+	esac
+done
+
+if [[ ! "$WORKERS" ]]
+then
+	WORKERS=1
+fi
+
+if [[ "$TOPICRANGELDA" ]]
+then
+	TOPICRANGELDA="--topic-range $TOPICRANGELDA"
+fi
+
+if [[ "$TOPICRANGELSI" ]]
+then
+	TOPICRANGELSI="--topic-range $TOPICRANGELSI"
+fi
+
+if [[ "$CLEAN" ]]
+then
+	CLEAN="--clean-level $CLEAN"
+fi
+
+PARMS="--pdf-dir $ROOTDIR/pdf \
+	--txt-dir $ROOTDIR/txt \
+	--ext-dir extracts \
+	--model-dir $ROOTDIR/models \
+	--res-dir $ROOTDIR/results \
+	--languages $LANGUAGES \
+	$CLEAN \
+	--workers $WORKERS \
+	$SCHEDULER"
+
+echo USER INFO: Parametros: $PARMS
+
+# Quitamos .DS_Store
+find $ROOTDIR -name '*.DS_Store' -type f -delete
+
+# Ahora sí corremos el modelo
+itam-tm ShowLSI $PARMS $TOPICRANGELSI
+itam-tm ShowLDA $PARMS $TOPICRANGELDA
+
+
+
