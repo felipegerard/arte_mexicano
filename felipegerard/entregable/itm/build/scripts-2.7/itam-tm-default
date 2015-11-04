@@ -31,6 +31,12 @@ do
 		-i|--identificator)
 		ID="$2"
 		shift;;
+		--no-timestamp)
+		NOTS=true
+		shift;;
+		--no-md5)
+		NOMD5=true
+		shift;;
 		*)
 		shift;;
 	esac
@@ -58,16 +64,35 @@ fi
 
 if [[ "$ID" ]]
 then
-	ID=$(echo "$ID" | tr ' ' '-')
+	ID="-$(echo "$ID" | tr ' ' '-')"
 else
-	ID=$(date +"%Y%m%d-%T" | sed 's/://g')
+	ID=""
 fi
+
+if ! [[ "$NOTS" ]]
+then
+	TS=$(date +"%Y%m%d-%T" | sed 's/://g')
+	ID="${ID}-${TS}"
+fi
+
+if ! [[ "$NOMD5" ]]
+then
+	echo "USER INFO: Calculando suma MD5 de la carpeta $ROOTDIR/pdfpara verificar entradas..."
+	if [ "$(uname)" == "Darwin" ] # Mac
+	then
+		MD5=$(find $ROOTDIR/pdf -type f -exec md5 {} \; | cut -d' ' -f4 | sort | md5)
+	else # Linux
+		MD5=$(find $ROOTDIR/pdf -type f -exec md5sum {} \; | cut -d' ' -f1 | sort | md5sum | cut -d ' ' -f1)
+	fi
+	ID="${ID}-${MD5}"
+fi
+
 
 PARMS="--pdf-dir $ROOTDIR/pdf \
 	--txt-dir $ROOTDIR/txt \
 	--ext-dir extracts \
-	--model-dir $ROOTDIR/models-$ID \
-	--res-dir $ROOTDIR/results-$ID \
+	--model-dir $ROOTDIR/models$ID \
+	--res-dir $ROOTDIR/results$ID \
 	--languages $LANGUAGES \
 	$CLEAN \
 	--workers $WORKERS \

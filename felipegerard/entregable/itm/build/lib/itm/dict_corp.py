@@ -66,8 +66,6 @@ class GenerateDictionary(luigi.Task):
 		return output
 
 	def run(self):
-		print 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-		print 'GenerateDictionary'
 		print self.languages #.split(',')
 
 		if self.clean_level in ('raw','clean','stopwords'):
@@ -78,7 +76,7 @@ class GenerateDictionary(luigi.Task):
 		# Generar diccionario por idioma
 		for idioma in self.output()['langs'].keys():
 			print '=========================='
-			print 'Generando diccionario de ' + idioma
+			print 'USER INFO: Generando diccionario de ' + idioma
 
 			# Obtener rutas de textos por idioma y nivel de limpieza
 			rutaTextos = os.path.join(self.txt_dir,kind,idioma)
@@ -90,10 +88,10 @@ class GenerateDictionary(luigi.Task):
 
 			# Crear carpeta de modelos si no existen
 			if ndocs < self.min_docs_per_lang:
-				print "No hay suficientes muestras para generar el modelo. Omitiendo idioma" + idioma
+				print "USER INFO: No hay suficientes muestras para generar el modelo. Omitiendo idioma" + idioma
 				continue
 			elif not os.path.exists(self.model_dir):
-				print "Creando carpeta base para modelos."
+				print "USER INFO: Creando carpeta base para modelos."
 				os.makedirs(self.model_dir)
 
 			# Generar el diccionario
