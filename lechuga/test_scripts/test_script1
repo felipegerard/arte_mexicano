@@ -1,0 +1,21 @@
+import pickle
+from gensim.models import LdaModel
+
+#nos traemos los resultados de la prediccion (que son una lista)
+a = open("/Users/lechuga/Dropbox/Andres/Escuela/ESCUELA/ITAM/CONAYCT/LDA_python/arte_mexicano_antiguo/lechuga/luigi/test/results/topic_results_stopwords_spanish_30.pickle")
+topics = pickle.load(a)
+#print(topics)
+
+#importamos el modelo correspondiente
+modelo1 = LdaModel.load("/Users/lechuga/Dropbox/Andres/Escuela/ESCUELA/ITAM/CONAYCT/LDA_python/arte_mexicano_antiguo/lechuga/luigi/test/models/lda-stopwords-spanish-30.lda")
+
+#vemos cual es el topico que tiene mejor puntuacion
+#max_value = max(topics[1])
+print(map(lambda x:  max(x, key=lambda y: y[1]) , topics))
+
+#vemos el vector del topico que le corresponde segun el modelo
+#print(modelo1.print_topic(max_value[0]))
+
+
+
+
