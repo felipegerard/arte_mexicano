@@ -91,14 +91,21 @@ Los algoritmos de minería necesitan entradas numéricas que viven en espacios v
 
 ### (ii) Latent Dirichlet Analysis: Clusters por tópicos
 
-**Input:** 
+**Input:** Un diccionario con los conteos de palabras y el corpus vectorizado (matriz términos - documentos).
 
-**Parámetros:**
+**Parámetros:** Número de tópicos a utilizar.
 
-**Output:** 
+**Output:** Modelos LDA entrenados con los datos dados. Listas de tòpicos y listas de libros asignadas a un conjunto (tópico a definir por experto), en diversos formatos (JSON, HTML, XML).
 
-**Paquetes relevantes:** 
---> Lechuga
+**Paquetes relevantes:**  `gensim`, `pandas`,`pandoc`,`markdown`
+
+El modelo LDA consiste en varias etepas:
+
+1. Se entrenan varios modelos de LDA con base en los parámetros seleccionados por el usuario.
+2. Cada modelo generado en el paso anterior predice o asigna una caregoría, cluster o en nuestro contexto un tópico a cada libro de la colección.
+3. Se crean listas para poder consultar los reslutados de la asignación de tópicos a los libros de la colección con cada modelo creado.
+
+Al finalizar los procesos mencionados se crean las carpetas `models` y `results` en las que se guardan los modelos de LDA y los resultados de los tópicos para la colección por cada modelo generado respectivamente. La visualziación de los resultados está disponible en distintos formatos. Por ejemplo, el HTML permite explorar la asignación de los tópicos a los libros de la colección bajo distintos modelos y esto permite que un experto lo explore y elija los parámetros óptimos del modelo. El JSON permite explorar la información en otros sistemas.
 
 ### (iii) Latent Semantic Indexing: Documentos similares
 
