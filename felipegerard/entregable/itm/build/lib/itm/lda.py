@@ -114,7 +114,7 @@ class TrainLDA(luigi.Task):
 				if self.by_chunks:
 					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, update_every=self.update_e, chunksize=self.chunk_size, passes=self.n_passes)
 				else:
-					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, passes=1)
+					lda = LdaModel(corpus, id2word=dicc, num_topics=n_topics, passes=self.n_passes)
 				lda.save(self.output()['langs'][idioma][n_topics].path)
 
 
@@ -334,7 +334,7 @@ class ShowLDA(luigi.Task):
 						'tags':re.sub(' \+ [\.0-9]+\*', ', ', re.sub('[\.0-9]+\*', '', topic, count=1)),
 						'documents':[]
 					}
-					for i, topic in enumerate(topics)
+					for i, topic in topics
 				}
 				for num_doc,(num_topic, s) in enumerate(high_topics):
 					res[num_topic]['documents'].append({

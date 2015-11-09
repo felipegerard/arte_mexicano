@@ -28,7 +28,7 @@ $ python
 sudo apt-get install r-base r-base-dev
 
 R -e 'install.packages(c("dplyr", "optparse", "networkD3"), repos="http://cran.us.r-project.org")'
-#> install.packages(c('dplyr', 'optparse', networkD3'))
+#> install.packages(c('dplyr', 'optparse', 'networkD3'))
 
 ## PARA INSTALAR EL PAQUETE
 
