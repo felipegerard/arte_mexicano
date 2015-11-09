@@ -27,7 +27,7 @@ class TrainLDA(luigi.Task):
 	by_chunks = luigi.BoolParameter(default=False)		# Hacer LDA por pedazos?
 	chunk_size = luigi.IntParameter(default=100)		# Tamaño de los pedazos
 	update_e = luigi.IntParameter(default = 0)			# Cada cuánto actualizar?
-	n_passes = luigi.IntParameter(default=10) 			# Número de pasadas al corpus
+	n_passes = luigi.IntParameter(default=1) 			# Número de pasadas al corpus
 	
 	# Parámetros corpus y diccionario
 	pdf_dir = luigi.Parameter()

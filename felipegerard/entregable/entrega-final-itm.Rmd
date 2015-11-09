@@ -160,19 +160,9 @@ sudo apt-get install -y \
 	gfortran \
 	pandoc
 
-# Librerías de Python que no se instalan bien solas
-sudo apt-get install -y \
-	python-numpy \
-	python-scipy
-
 # Instalar el paquete itm	y sus dependencias de Python
-PACK = itm-0.1 # U otra versión
-cd /ruta/a/paquete
-echo ${PACK}.tar.gz && \
-	cd /tmp && \
-	tar xzf ${PACK}.tar.gz && \
-	cd ${PACK} && \
-	python setup.py install
+PACK = /ruta/a/paquete/itm-a.b # Donde a.b es la versión (ej: itm-0.2)
+pip install $PACK
 
 # Instalar librerías de R y bajar stopwords de nltk (no se bajan al bajar el paquete)
 R -e 'install.packages(c("dplyr", "optparse", "networkD3"), repos = "http://cran.us.r-project.org")'
