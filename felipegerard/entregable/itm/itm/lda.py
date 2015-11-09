@@ -220,10 +220,7 @@ class PredictLDA(luigi.Task):
 			for n_topics, modelo in modelos.iteritems():
 				model_path = modelo.path
 				model = LdaModel.load(model_path)
-				classification = []
-				for doc in corpus:
-					topic = model.get_document_topics(doc)
-					classification.append(topic)
+				classification = [model.get_document_topics(doc) for doc in corpus]
 				print '--------------------------------------'
 				print 'USER INFO: Clasificando textos en %s con nivel de limpieza "%s" con %d tópicos' % (idioma, kind, n_topics)
 				model.print_topics(len(corpus),5)
@@ -334,7 +331,7 @@ class ShowLDA(luigi.Task):
 						'tags':re.sub(' \+ [\.0-9]+\*', ', ', re.sub('[\.0-9]+\*', '', topic, count=1)),
 						'documents':[]
 					}
-					for i, topic in enumerate(topics)
+					for i, topic in topics
 				}
 				for num_doc,(num_topic, s) in enumerate(high_topics):
 					res[num_topic]['documents'].append({
