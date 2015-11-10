@@ -5,7 +5,7 @@
 
 FROM ubuntu
 LABEL name="Image to run ITAM Text Miner (itm) package"
-LABEL version="0.1"
+LABEL version="0.2"
 MAINTAINER Felipe Gerard
 
 # Environment
@@ -15,8 +15,7 @@ ENV TERM=xterm-256color
 
 RUN echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list && \
 	sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9 && \
-	apt-get update && \
-	apt-get upgrade
+	apt-get update
 
 RUN apt-get install -y \
 	python2.7-dev \
@@ -33,18 +32,10 @@ RUN apt-get install -y \
 	gfortran \
 	pandoc
 
-RUN apt-get install -y \
-	python-numpy \
-	python-scipy
-
 # Install itm
-ENV PACK=itm-0.1
-COPY ${PACK}.tar.gz /tmp/
-RUN echo ${PACK}.tar.gz && \
-	cd /tmp && \
-	tar xzf ${PACK}.tar.gz && \
-	cd ${PACK} && \
-	python setup.py install
+ENV VERSION="0.2"
+COPY itm/dist/itm-$VERSION.tar.gz /tmp/
+RUN pip install /tmp/itm-$VERSION.tar.gz
 
 # Install R libraries and download nltk stopwords
 RUN R -e 'install.packages(c("dplyr", "optparse", "networkD3"), repos="http://cran.us.r-project.org")'
