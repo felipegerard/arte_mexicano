@@ -1,9 +1,10 @@
 ---
-title: "ITAM Text Miner"
-author: "Felipe Gerard"
-date: "2 de noviembre de 2015"
-output: pdf_document
+title: "LDA luigi"
+author: "Andrés Villaseñor"
+date: "4 de noviembre de 2015"
+output: html_document
 ---
+
 
 # 0. El problema por resolver
 
@@ -98,14 +99,13 @@ Los algoritmos de minería necesitan entradas numéricas que viven en espacios v
 **Output:** Modelos LDA entrenados con los datos dados. Listas de tòpicos y listas de libros asignadas a un conjunto (tópico a definir por experto), en diversos formatos (JSON, HTML, XML).
 
 **Paquetes relevantes:**  `gensim`, `pandas`,`pandoc`,`markdown`
-
 El modelo LDA consiste en varias etepas:
 
 1. Se entrenan varios modelos de LDA con base en los parámetros seleccionados por el usuario.
 2. Cada modelo generado en el paso anterior predice o asigna una caregoría, cluster o en nuestro contexto un tópico a cada libro de la colección.
 3. Se crean listas para poder consultar los reslutados de la asignación de tópicos a los libros de la colección con cada modelo creado.
 
-Al finalizar los procesos mencionados se crean las carpetas `models` y `results` en las que se guardan los modelos de LDA y los resultados de los tópicos para la colección por cada modelo generado respectivamente. La visualziación de los resultados está disponible en distintos formatos. Por ejemplo, el HTML permite explorar la asignación de los tópicos a los libros de la colección bajo distintos modelos y esto permite que un experto lo explore y elija los parámetros óptimos del modelo. El JSON permite explorar la información en otros sistemas.
+Al finalizar los procesos mencionados se crean las carpetas _models_ y _results_ en las que se guardan los modelos de LDA y los resultados de los tópicos para la colección por cada modelo generado respectivamente. La visualziación de los resultados está disponible en distintos formatos. Por ejemplo, el HTML permite explorar la asignación de los tópicos a los libros de la colección bajo distintos modelos y esto permite que un experto lo explore y elija los parámetros óptimos del modelo. El JSON permite explorar la información en otros sistemas.
 
 ### (iii) Latent Semantic Indexing: Documentos similares
 
@@ -136,7 +136,7 @@ La instalación del paquete en Ubuntu es bastante simple. Se requiere instalar `
 ```
 # Necesario para instalar R >= 3.1
 echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list && \
-	sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+  sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 
 # Actualizar índices de apt-get
 sudo apt-get update && \
@@ -160,9 +160,19 @@ sudo apt-get install -y \
 	gfortran \
 	pandoc
 
+# Librerías de Python que no se instalan bien solas
+sudo apt-get install -y \
+	python-numpy \
+	python-scipy
+
 # Instalar el paquete itm	y sus dependencias de Python
-PACK = /ruta/a/paquete/itm-a.b # Donde a.b es la versión (ej: itm-0.2)
-pip install $PACK
+PACK = itm-0.1 # U otra versión
+cd /ruta/a/paquete
+echo ${PACK}.tar.gz && \
+	cd /tmp && \
+	tar xzf ${PACK}.tar.gz && \
+	cd ${PACK} && \
+	python setup.py install
 
 # Instalar librerías de R y bajar stopwords de nltk (no se bajan al bajar el paquete)
 R -e 'install.packages(c("dplyr", "optparse", "networkD3"), repos = "http://cran.us.r-project.org")'

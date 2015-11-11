@@ -39,7 +39,7 @@ net <- simpleNetwork(links, Source = 'from_name', Target = 'to_name')
 #                     Value = 'sim',
 #                     zoom = TRUE)
 
-saveNetwork(net, file = opt$output, selfcontained = T)
+saveNetwork(net, file = opt$output, selfcontained = F)
 
 
 

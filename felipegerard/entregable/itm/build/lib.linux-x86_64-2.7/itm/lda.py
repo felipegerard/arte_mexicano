@@ -334,7 +334,7 @@ class ShowLDA(luigi.Task):
 						'tags':re.sub(' \+ [\.0-9]+\*', ', ', re.sub('[\.0-9]+\*', '', topic, count=1)),
 						'documents':[]
 					}
-					for i, topic in enumerate(topics)
+					for i, topic in topics
 				}
 				for num_doc,(num_topic, s) in enumerate(high_topics):
 					res[num_topic]['documents'].append({
