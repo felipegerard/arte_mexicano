@@ -17,6 +17,7 @@ setup(name='itm',
 		'gensim>=0.12.1',
 		'pandas>=0.17.0',
 		'nltk>=3.0.5',
-		'markdown>=2.6.2'
+		'markdown>=2.6.2',
+		'PyPDF2>=1.25.1'
 		],
 	zip_safe=False)
